@@ -39,4 +39,11 @@ export const worldBrief={
  gate:{position:[4,0,0],height:4,width:2.8,locked:true},exit:{position:[8,0,0]},
  rules:'Escape requires player x>6.5, |z|<4.5, y<3, alive. Ground ends at x=10. WASD moves, space jumps, F starts/stops/reuses invention. Wall at x4 spans z -5 to5. Gate |z|<1.4 unlocks automatically with the key nearby. Get close to a frozen guard or sneak close while cloaked to take the key. Free courier can grab and deliver. Clear wall above y4.8. No model-declared success.',
 };
-export const codeGenerationSchema=inventionSchema.omit({phases:true,test:true}).extend({code:z.string().min(40).max(80000)});
+// Structured output follows schema order: geometry arrives before the long source.
+export const codeGenerationSchema=z.object({
+ name:inventionSchema.shape.name,mount:inventionSchema.shape.mount,
+ spawn:inventionSchema.shape.spawn,parts:inventionSchema.shape.parts,
+ autoDeploy:inventionSchema.shape.autoDeploy,description:inventionSchema.shape.description,
+ usage:inventionSchema.shape.usage,limitations:inventionSchema.shape.limitations,
+ code:z.string().min(40).max(80000),
+});

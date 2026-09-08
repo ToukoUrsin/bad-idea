@@ -13,3 +13,9 @@
 #app.game-active,#app.game-active *{cursor:none!important}.inventory-help{font-size:10px;color:#93a198;margin:13px 0 4px}.inventory-item.highlighted{background:#edf5f0;border-radius:5px;padding-left:10px;padding-right:10px}.inventory-item.highlighted>span{color:#346b51}#app.game-active #open-inventory{pointer-events:none}
 
 #active-rule{display:block;font-size:11px;color:#706750;max-width:420px;margin-top:5px}#inventory-rule{font-size:11px;line-height:1.5;color:#706750}.inventory-item:disabled{opacity:.5}.inventory-item:disabled small{color:#8b706b}
+
+#continue-run{display:block;width:100%;margin-top:8px;padding:8px 0;border:0;background:transparent;color:#6e8379;text-align:left;font-size:11px}
+#continue-run:hover{color:#345f4d}
+#enter:disabled{opacity:.55}
+#build-notice,#timer{font-variant-numeric:tabular-nums}
+@media(prefers-reduced-motion:reduce){.spinner{animation:none}}

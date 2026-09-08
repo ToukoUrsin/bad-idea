@@ -1,0 +1,12 @@
+.git
+.env*
+.DS_Store
+node_modules
+dist
+runtime
+tests
+*.log
+playwright-report
+test-results
+.netlify
+.vercel

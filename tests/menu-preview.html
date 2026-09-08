@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Bad Idea · Result preview</title>
+    <style>
+      .preview-scene { position:fixed; inset:0; background:linear-gradient(145deg,#d3ddd9,#eee9dd 56%,#bfc9c7); }
+      .preview-controls { position:fixed; left:16px; bottom:16px; z-index:1000; display:flex; gap:8px; align-items:center; padding:10px 12px; border:1px solid #d8ddd9; border-radius:10px; background:#fff; box-shadow:0 2px 12px #0001; font:12px system-ui; }
+      .preview-controls select { max-width:190px; padding:5px; border:1px solid #d8ddd9; border-radius:4px; }
+      @media(max-width:600px) { .preview-controls { bottom:6px; left:6px; padding:6px; } }
+    </style>
+  </head>
+  <body>
+    <main id="app"><div class="preview-scene"></div><section id="result" class="overlay"></section></main>
+    <aside class="preview-controls"><label for="scenario">Preview state</label><select id="scenario"></select><output id="preview-action" aria-live="polite"></output></aside>
+    <script type="module" src="./menu-preview.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,10 @@
+#workshop .voice-tools{display:flex;align-items:center;gap:8px;margin:10px 0 5px}
+#workshop .voice-tools button{font-size:13px;line-height:1.4;padding:8px 11px;min-height:36px}
+#workshop #voice-toggle{color:var(--green);background:#f2f8f5;border-color:#c7ddd1}
+#workshop #voice-toggle[aria-pressed=true]{color:#943d39;background:#fff1ef;border-color:#e1b4af}
+#workshop #voice-toggle[aria-pressed=true]::before{content:'';display:inline-block;width:7px;height:7px;background:currentColor;border-radius:50%;margin-right:7px}
+#workshop .voice-status{font-size:13px;line-height:1.5;color:#65747e;margin:8px 0 12px;min-height:20px}
+#workshop .voice-status.voice-error{color:#a34139}
+#workshop .voice-privacy{display:block;font-size:12px;line-height:1.5;color:#75838d;margin:0 0 9px}
+#workshop .voice-active #prompt{background:#f6f8f7;color:#68766e}
+#workshop .voice-active #invent{opacity:.45;pointer-events:none}

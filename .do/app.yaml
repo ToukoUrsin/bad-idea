@@ -1,0 +1,38 @@
+name: bad-idea
+region: sfo
+ingress:
+  rules:
+    - component:
+        name: web
+      match:
+        path:
+          prefix: /
+services:
+  - name: web
+    github:
+      repo: ToukoUrsin/bad-idea
+      branch: main
+      deploy_on_push: true
+    source_dir: /
+    dockerfile_path: Dockerfile
+    instance_count: 1
+    instance_size_slug: apps-s-1vcpu-0.5gb
+    http_port: 8080
+    envs:
+      - key: APP_ORIGIN
+        value: ${APP_URL}
+        scope: RUN_TIME
+      - key: OPENAI_API_KEY
+        value: ""
+        scope: RUN_TIME
+        type: SECRET
+      - key: GAME_PASSWORD
+        value: ""
+        scope: RUN_TIME
+        type: SECRET
+    health_check:
+      http_path: /api/health
+      initial_delay_seconds: 10
+      period_seconds: 10
+      timeout_seconds: 5
+      failure_threshold: 3

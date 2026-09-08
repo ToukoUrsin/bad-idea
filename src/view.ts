@@ -2,7 +2,10 @@ import type {Arena} from './arena';
 import * as THREE from 'three';
 import {prepareInvention,type Invention} from './spec';
 import type { Simulation,V,WorldEntity } from './simulation';
+import {ConstructionOutline} from './construction-outline';
+import type {InventionOutline} from './build-stream';
 export class GameView {
+ construction=new ConstructionOutline();reducedMotion=window.matchMedia('(prefers-reduced-motion: reduce)');
  rope=new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(),new THREE.Vector3()]),new THREE.LineBasicMaterial({color:0xe5d6af}));
  environment:THREE.Object3D[]=[];chapter=new THREE.Group();
  lastSelf=new THREE.Vector3();freeYaw=0;
@@ -52,13 +55,14 @@ export class GameView {
   for(const [x,z] of [[8,-4],[9,3.5],[6,4.5]]){this.mesh('cylinder',[.2,1.3,.2],'#796d58',[x,.65,z]);this.mesh('sphere',[1.25,1.6,1.25],'#899f70',[x,1.9,z]);}
   for(const [x,z] of [[-7,3],[-3,-2.7],[-8,-2.5]]){this.mesh('box',[.85,.85,.85],'#9b937b',[x,.45,z]);this.mesh('box',[.9,.09,.9],'#756e5c',[x,.78,z]);}
   this.environment=this.scene.children.filter(o=>!environmentStart.has(o));this.scene.add(this.chapter);
-  this.person(this.player,false);this.person(this.guard,true);this.scene.add(this.player,this.guard,this.invention,this.key,this.beam,this.rope);this.beam.visible=false;this.rope.visible=false;
+  this.person(this.player,false);this.person(this.guard,true);this.scene.add(this.player,this.guard,this.invention,this.key,this.beam,this.rope,this.construction.group);this.beam.visible=false;this.rope.visible=false;
   this.mesh('torus',[.21,.21,.07],'#ffd556',[0,0,0],this.key);this.mesh('box',[.07,.35,.06],'#ffd556',[0,-.2,0],this.key);this.mesh('box',[.16,.06,.06],'#ffd556',[.055,-.32,0],this.key);
   this.frost=this.mesh('sphere',[2,2.4,2],'#8ce7f2',[0,1,0]);(this.frost.material as THREE.MeshStandardMaterial).transparent=true;(this.frost.material as THREE.MeshStandardMaterial).opacity=.22;this.frost.visible=false;
   this.shadow=this.mesh('sphere',[1.1,.015,.8],'#485954',[-6,.04,0]);(this.shadow.material as THREE.MeshStandardMaterial).transparent=true;(this.shadow.material as THREE.MeshStandardMaterial).opacity=.2;
   this.observer=new ResizeObserver(()=>this.resize());this.observer.observe(host);this.resize();
  }
  setLevel(level:number){
+  this.endConstruction();
   this.gate.scale.set(1,1,1);
   for(const o of this.environment){o.traverse(child=>child.visible=true);o.visible=level===0;}
   this.chapter.traverse(o=>{if(o instanceof THREE.Mesh){o.geometry.dispose();(o.material as THREE.Material).dispose();}});this.chapter.clear();
@@ -82,6 +86,7 @@ export class GameView {
   for(const z of [-1.5,1.5])box([.15,2.6,.15],'#3c625d',[8,y+1.3,z]);box([.18,.2,3.2],'#9ae5bd',[8,y+2.6,0]);
  }
  setArena(_arena:Arena){
+  this.endConstruction();
   for(const o of this.environment)o.visible=false;
   this.chapter.traverse(o=>{if(o instanceof THREE.Mesh){o.geometry.dispose();for(const m of Array.isArray(o.material)?o.material:[o.material])m.dispose();}});this.chapter.clear();
   this.renderer.setClearColor('#f4f5f6');this.scene.fog=new THREE.Fog('#f4f5f6',28,65);
@@ -118,6 +123,9 @@ export class GameView {
   for(const x of [-.09,.09])this.mesh('sphere',[.045,.055,.03],'#283940',[x,.65,.224],g);
  }
  setInvention(spec:Invention|null){spec=spec?prepareInvention(spec):null;this.spec=spec;this.invention.traverse(o=>{if(o instanceof THREE.Mesh){o.geometry.dispose();(o.material as THREE.Material).dispose();}});this.invention.clear();if(!spec)return;for(const p of spec.parts){const m=this.mesh(p.shape,p.scale,p.color,p.position,this.invention);m.rotation.set(p.rotation[0],p.rotation[1],p.rotation[2]);m.userData={animation:p.animation,rotation:p.rotation};if(spec.phases.some(ph=>ph.actions.some(a=>a.op==='freezeRay'))){(m.material as THREE.MeshStandardMaterial).depthTest=false;(m.material as THREE.MeshStandardMaterial).depthWrite=false;m.renderOrder=10;m.castShadow=false;}} }
+ beginConstruction(position:{x:number,y:number,z:number},aim:{x:number,y:number,z:number}){this.construction.begin(position,aim);}
+ updateConstruction(outline:InventionOutline){this.construction.update(outline);}
+ endConstruction(){this.construction.end();}
  resize(){const {width,height}=this.host.getBoundingClientRect();this.renderer.setSize(width,height);this.camera.aspect=width/height;this.camera.fov=width<600?90:80;this.camera.updateProjectionMatrix();}
  render(sim:Simulation,delta:number,alpha=1,playing=true){if(playing)this.time+=delta;const current=sim.position;
   const t=Math.hypot(current.x-sim.previous.x,current.y-sim.previous.y,current.z-sim.previous.z)>2?1:alpha;
@@ -145,6 +153,7 @@ export class GameView {
     this.invention.rotateZ(this.pitch);const offset=new THREE.Vector3(.25-(sim.beam>0?.035:0),-.55,0).applyQuaternion(this.invention.quaternion);this.invention.position.copy(this.camera.position).add(offset);
    }
   }
+  this.construction.reducedMotion=this.reducedMotion.matches;this.construction.render(p,this.yaw,delta);
   this.rope.visible=sim.inventionActive&&!sim.phaseDone&&!!sim.invention?.phases[sim.phase]?.actions.some(a=>a.op==='attract');
   if(this.rope.visible)this.rope.geometry.setFromPoints([new THREE.Vector3(p.x,p.y+.3,p.z),new THREE.Vector3(sim.self.x,sim.self.y,sim.self.z)]);
   for(const child of this.guard.children)if(child.name.startsWith('leg'))child.rotation.x=sim.frozen||sim.distracted?0:Math.sin(sim.elapsed*8+(child.name.includes('-')?0:Math.PI))*.35;

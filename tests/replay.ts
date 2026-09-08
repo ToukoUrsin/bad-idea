@@ -1,9 +1,22 @@
 import {CodeRuntime} from '../src/code-runtime';
 import {validateInWorker} from '../src/validate-in-worker';
-import {starters} from '../src/starters';
-import{Simulation,initPhysics}from'../src/simulation';import{prepareInvention}from'../src/spec';import{GameView}from'../src/view';import{PlayDriver}from'./play-driver';
+import {loadReplayCase} from './replay-fixtures';
+import{Simulation,initPhysics}from'../src/simulation';import{GameView}from'../src/view';import{PlayDriver}from'./play-driver';
 await initPhysics();const $=(q:string)=>document.querySelector<HTMLElement>(q)!;const view=new GameView($('#stage'));let sim=new Simulation(),driver:PlayDriver|null=null,paused=false,last=performance.now(),acc=0,frames:number[]=[];
-$('#run').onclick=async()=>{const kind=(document.querySelector('#case')as HTMLSelectElement).value;const level=kind==='gap'?1:kind==='rooftop'?2:kind==='vine-code'?1:0;const coded=kind.endsWith('-code');const data=coded?await(await fetch('/runtime/'+kind+'.json')).json():level?{invention:starters[level]}:await(await fetch('/runtime/playtest/'+kind+'.json')).json();if(coded){$('#title').textContent='Testing generated code…';const result=await validateInWorker(data.invention,level);if(!result.ok){$('#title').textContent='VALIDATION FAILED: '+result.error;return;}}sim.dispose();sim=new Simulation(level);view.setLevel(level);sim.start(prepareInvention(data.invention));if(!coded&&kind!=='freeze-ray'&&kind!=='gap')sim.activate();driver=new PlayDriver(kind,sim);view.setInvention(sim.invention);if(coded){new CodeRuntime(sim,view);sim.aim={x:1,y:0,z:0};}view.clearParticles();view.yaw=-Math.PI/2;view.pitch=-.08;frames=[];acc=0;paused=false;$('#pause').textContent='Pause';$('#title').textContent=sim.invention!.name;};
+$('#run').onclick=async()=>{
+ const run=$('#run')as HTMLButtonElement,kind=(document.querySelector('#case')as HTMLSelectElement).value;
+ run.disabled=true;$('#title').textContent='Loading replay…';
+ try{
+  const {level,coded,invention}=await loadReplayCase(kind);
+  if(coded){$('#title').textContent='Testing generated code…';const result=await validateInWorker(invention,level);if(!result.ok)throw new Error('Validation failed: '+result.error);}
+  sim.dispose();sim=new Simulation(level);view.setLevel(level);sim.start(invention);
+  if(!coded&&kind!=='freeze-ray'&&kind!=='gap')sim.activate();
+  driver=new PlayDriver(kind,sim);view.setInvention(sim.invention);
+  if(coded){new CodeRuntime(sim,view);sim.aim={x:1,y:0,z:0};}
+  view.clearParticles();view.yaw=-Math.PI/2;view.pitch=-.08;frames=[];acc=0;paused=false;$('#pause').textContent='Pause';$('#title').textContent=sim.invention!.name;
+ }catch(error){$('#title').textContent='REPLAY FAILED: '+(error instanceof Error?error.message:String(error));}
+ finally{run.disabled=false;}
+};
 $('#pause').onclick=()=>{paused=!paused;$('#pause').textContent=paused?'Resume':'Pause';};
 $('#camera').onclick=()=>{view.firstPerson=!view.firstPerson;$('#camera').textContent=view.firstPerson?'Overview camera':'First-person camera';if(!view.firstPerson){view.camera.position.set(-8,10,13);view.camera.lookAt(0,1,0);}};
 function frame(now:number){const dt=Math.min(.08,(now-last)/1000);last=now;if(!paused&&sim.state==='running'){

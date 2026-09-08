@@ -1,0 +1,11 @@
+#prompt-rule-feedback{font-size:13px;line-height:1.5;color:#527363;margin:8px 0 0}
+#prompt-rule-feedback.invalid{color:#a04b36}
+#prompt[aria-invalid=true]{border-color:#bf715c}
+#word-bank{padding:14px;margin:0 0 20px;border:1px solid #bcdbe7;border-radius:8px;background:#f3f9fc}
+#word-bank h3{margin:0;font-size:15px;font-weight:600;color:#32637b}
+#word-bank p{font-size:13px;line-height:1.5;color:#526f7b;margin:7px 0 10px}
+.word-chips{display:flex;gap:6px;flex-wrap:wrap}
+.word-chips button,.word-chips span{display:inline-block;padding:5px 9px;font-size:14px;line-height:1.4;border:1px solid #b3d3e2;border-radius:5px;background:#fff;color:#2b627b}
+.word-chips button:hover{background:#dfedf5;border-color:#80b3c9}
+.word-chips.locked-words span{background:transparent;color:#687f8c;border-style:dashed}
+#word-progress{display:block;margin-top:8px;font-size:13px;line-height:1.5;color:#326d87}
