@@ -1,0 +1,215 @@
+{
+  "prompt": "A springy trampoline that launches me over the prison wall when I jump on it",
+  "invention": {
+    "name": "Wall-Hopper Trampoline",
+    "description": "A springy trampoline launches you upward and forward over the prison wall when you land on its pad.",
+    "usage": "Press F to activate. Walk to the trampoline beside the wall and jump onto its center to launch over.",
+    "limitations": [
+      "Launches only when you contact the active pad; it cannot launch you remotely.",
+      "The launch is aimed toward the wall, not your viewing direction.",
+      "Another launch requires landing on or stepping onto the pad again."
+    ],
+    "mount": "free",
+    "spawn": [
+      2.5,
+      0.1,
+      2.8
+    ],
+    "parts": [
+      {
+        "shape": "cylinder",
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1.8,
+          0.12,
+          1.8
+        ],
+        "color": "#26364A",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "torus",
+        "position": [
+          0,
+          0.05,
+          0
+        ],
+        "rotation": [
+          1.5708,
+          0,
+          0
+        ],
+        "scale": [
+          1.85,
+          1.85,
+          0.15
+        ],
+        "color": "#FFAC32",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "cylinder",
+        "position": [
+          -0.63,
+          -0.03,
+          -0.63
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.14,
+          0.2,
+          0.14
+        ],
+        "color": "#B7C4D1",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "cylinder",
+        "position": [
+          -0.63,
+          -0.03,
+          0.63
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.14,
+          0.2,
+          0.14
+        ],
+        "color": "#B7C4D1",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "cylinder",
+        "position": [
+          0.63,
+          -0.03,
+          -0.63
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.14,
+          0.2,
+          0.14
+        ],
+        "color": "#B7C4D1",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "cylinder",
+        "position": [
+          0.63,
+          -0.03,
+          0.63
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.14,
+          0.2,
+          0.14
+        ],
+        "color": "#B7C4D1",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "box",
+        "position": [
+          -0.08,
+          0.075,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.55,
+          0.03,
+          0.14
+        ],
+        "color": "#FFE55C",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "cone",
+        "position": [
+          0.3,
+          0.075,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          -1.5708
+        ],
+        "scale": [
+          0.32,
+          0.3,
+          0.04
+        ],
+        "color": "#FFE55C",
+        "animation": "none",
+        "solid": false
+      }
+    ],
+    "phases": [
+      {
+        "label": "Contact-triggered spring launch",
+        "actions": [
+          {
+            "op": "bounce",
+            "target": "player",
+            "vector": [
+              4.5,
+              10.5,
+              0
+            ],
+            "strength": 0,
+            "radius": 0.9
+          }
+        ],
+        "until": {
+          "kind": "never",
+          "target": "self",
+          "value": 0
+        }
+      }
+    ]
+  },
+  "elapsedMs": 10688,
+  "model": "gpt-6-astra",
+  "serviceTier": "fast"
+}

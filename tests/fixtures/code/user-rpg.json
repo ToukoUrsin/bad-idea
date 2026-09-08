@@ -1,0 +1,236 @@
+{
+  "prompt": "A functional RPG launcher. Fire flying rockets where I aim, with recoil, a smoke trail, a visible explosion on collision, and actual destruction of walls and the gate. Let me reload and fire again.",
+  "level": 0,
+  "invention": {
+    "code": "const {THREE,RAPIER,sim,world,view,root}=game;\nconst rockets=[],effects=[];\nconst sphere=new THREE.SphereGeometry(1,12,8),box=new THREE.BoxGeometry(1,1,1),tube=new THREE.CylinderGeometry(.065,.065,.48,10),nose=new THREE.ConeGeometry(.105,.24,10);\nconst metal=new THREE.MeshStandardMaterial({color:0x56663a,metalness:.45,roughness:.5}),tip=new THREE.MeshStandardMaterial({color:0xb2a274}),flame=new THREE.MeshBasicMaterial({color:0xffbc35});\nlet loaded=true,reloading=0,kick=0,disposed=false;\nconst radius=1.25;\nfunction vec(p){return new THREE.Vector3(p.x,p.y,p.z);}\nfunction particle(p,type,velocity,size,life){\n if(effects.length>=220){const old=effects.shift();old.mesh.removeFromParent();old.mesh.material.dispose();}\n const mat=new THREE.MeshBasicMaterial({color:type==='fire'?0xffa128:type==='debris'?0x8c9587:0x727675,transparent:true,opacity:type==='smoke'?.5:1,depthWrite:false});\n const mesh=new THREE.Mesh(type==='debris'?box:sphere,mat);mesh.name='rpg-'+(type==='fire'?'explosion':type);mesh.position.copy(p);mesh.scale.setScalar(size);root.add(mesh);\n effects.push({mesh,type,velocity,size,life,total:life});return mesh;\n}\nfunction blast(p){\n particle(p,'fire',new THREE.Vector3(),.12,.55);\n for(let i=0;i<18;i++){\n  const d=new THREE.Vector3(Math.random()-.5,Math.random()*.85,Math.random()-.5).normalize();\n  particle(p,'debris',d.multiplyScalar(2+Math.random()*4),.055+Math.random()*.09,.8+Math.random()*.5);\n }\n for(let i=0;i<8;i++)particle(p.clone().add(new THREE.Vector3((Math.random()-.5)*.6,Math.random()*.5,(Math.random()-.5)*.6)),'smoke',new THREE.Vector3((Math.random()-.5)*.6,.8+Math.random(),(Math.random()-.5)*.6),.25,1.5);\n let destroyed=0;\n for(const e of game.entities){\n  if(e.removed||['ground','near-bank','far-bank','rooftop'].includes(e.id))continue;\n  const c=e.id==='guard'?{x:sim.guard.x,y:sim.guard.y+.9,z:sim.guard.z}:e.position;\n  const dx=Math.max(0,Math.abs(p.x-c.x)-e.half.x),dy=Math.max(0,Math.abs(p.y-c.y)-e.half.y),dz=Math.max(0,Math.abs(p.z-c.z)-e.half.z);\n  if(Math.hypot(dx,dy,dz)<=radius){game.removeEntity(e);destroyed++;}\n }\n const push=vec(sim.position).sub(p),dist=push.length();\n if(dist<radius+1.1){if(dist<.01)push.set(0,1,0);push.normalize().multiplyScalar(7*(1-dist/(radius+1.1)));push.y+=1;sim.player.applyImpulse(push,true);}\n game.sound(80,.28,.12,24);game.say(destroyed?'Impact! Cover destroyed. Press F to reload.':'Impact! Press F to reload.');\n}\nfunction guardHit(p,d,length){\n const guard=game.entities.find(e=>e.id==='guard'&&!e.removed);\n if(!guard||!sim.guardEnabled)return Infinity;\n const offset=p.clone().sub(new THREE.Vector3(sim.guard.x,sim.guard.y+.9,sim.guard.z));\n const b=offset.dot(d),c=offset.lengthSq()-.6*.6,disc=b*b-c;\n if(c<=0)return 0;if(disc<0)return Infinity;\n const t=-b-Math.sqrt(disc);return t>=0&&t<=length?t:Infinity;\n}\nfunction fire(){\n const d=vec(sim.aim);if(d.lengthSq()<.001)d.set(1,0,0);d.normalize();\n const p=vec(sim.position);p.y+=.86;\n const group=new THREE.Group();group.name='rpg-rocket';\n const body=new THREE.Mesh(tube,metal);body.rotation.z=-Math.PI/2;group.add(body);\n const head=new THREE.Mesh(nose,tip);head.rotation.z=-Math.PI/2;head.position.x=.32;group.add(head);\n for(let i=0;i<2;i++){const fin=new THREE.Mesh(box,metal);fin.scale.set(.18,.24,.025);fin.position.x=-.2;fin.rotation.x=i*Math.PI/2;group.add(fin);}\n const exhaust=new THREE.Mesh(nose,flame);exhaust.rotation.z=Math.PI/2;exhaust.position.x=-.36;exhaust.scale.set(.75,1.3,.75);group.add(exhaust);\n group.quaternion.setFromUnitVectors(new THREE.Vector3(1,0,0),d);group.position.copy(p).addScaledVector(d,.15);root.add(group);\n // Sweep from the eye on the first tick too: firing against a wall cannot skip it.\n rockets.push({mesh:group,p,d,age:0,smoke:0});\n loaded=false;kick=1;sim.player.applyImpulse(d.clone().multiplyScalar(-1.5),true);\n game.sound(170,.14,.1,48);game.say('Rocket away! Press F to reload.');\n}\nreturn {\n use(){\n  if(disposed)return;\n  if(reloading>0){game.say('Reloading…');return;}\n  if(!loaded){reloading=1.2;game.sound(420,.09,.06,220);game.say('Loading a fresh rocket…');return;}\n  fire();\n },\n step(dt){\n  if(disposed)return;\n  kick=Math.max(0,kick-dt*7);\n  if(reloading>0){reloading=Math.max(0,reloading-dt);if(reloading===0){loaded=true;game.sound(650,.07,.06,850);game.say('Loaded. Aim and press F to fire.');}}\n  for(let i=rockets.length-1;i>=0;i--){\n   const r=rockets[i],length=22*dt;r.age+=dt;\n   const hit=world.castRay(new RAPIER.Ray(r.p,r.d),length,true,undefined,undefined,undefined,sim.player);\n   const wallDistance=hit?hit.timeOfImpact:Infinity;\n   const distance=Math.min(wallDistance,guardHit(r.p,r.d,length));\n   if(distance<=length){r.p.addScaledVector(r.d,distance);blast(r.p);r.mesh.removeFromParent();rockets.splice(i,1);continue;}\n   r.p.addScaledVector(r.d,length);r.mesh.position.copy(r.p);r.smoke+=dt;\n   if(r.smoke>=.03){r.smoke=0;particle(r.p.clone().addScaledVector(r.d,-.3),'smoke',new THREE.Vector3(0,.4,0),.09,.85);}\n   if(r.age>=4){r.mesh.removeFromParent();rockets.splice(i,1);}\n  }\n  for(let i=effects.length-1;i>=0;i--){\n   const e=effects[i];e.life-=dt;\n   if(e.life<=0){e.mesh.removeFromParent();e.mesh.material.dispose();effects.splice(i,1);continue;}\n   const age=1-e.life/e.total;\n   if(e.type==='debris'){e.velocity.y-=9.81*dt;e.mesh.rotation.x+=dt*6;e.mesh.rotation.z+=dt*4;}\n   e.mesh.position.addScaledVector(e.velocity,dt);\n   if(e.type==='fire'){e.mesh.scale.setScalar(.12+radius*Math.min(1,age*3));e.mesh.material.color.setHSL(.12*(1-age),1,.55);}\n   else if(e.type==='smoke')e.mesh.scale.setScalar(e.size+age*.55);\n   e.mesh.material.opacity=(e.type==='smoke'?.5:1)*(1-age);\n  }\n },\n render(){\n  if(disposed)return;\n  const d=vec(sim.aim).normalize(),right=new THREE.Vector3().crossVectors(d,new THREE.Vector3(0,1,0));\n  if(right.lengthSq()<.001)right.set(0,0,1);right.normalize();\n  const up=new THREE.Vector3().crossVectors(right,d).normalize();\n  view.invention.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(d,up,right));\n  const dip=reloading>0?Math.sin(Math.PI*(1-reloading/1.2)):0;\n  view.invention.position.copy(vec(sim.position)).add(new THREE.Vector3(0,.86,0)).addScaledVector(d,.12-kick*.13).addScaledVector(right,.34).addScaledVector(up,-.42-dip*.15);\n  view.invention.rotateZ(kick*.07-dip*.45);\n },\n dispose(){\n  disposed=true;\n  for(const r of rockets)r.mesh.removeFromParent();rockets.length=0;\n  for(const e of effects){e.mesh.removeFromParent();e.mesh.material.dispose();}effects.length=0;\n  for(const g of [sphere,box,tube,nose])g.dispose();for(const m of [metal,tip,flame])m.dispose();\n }\n};",
+    "test": "const {sim,THREE,root,world}=game;\nconst gate=game.entities.find(e=>e.id==='gate'),wall=game.entities.find(e=>e.id==='wall-right');\nassert(gate&&wall,'Courtyard provides a gate and destructible wall.');\nconst gateCollider=gate.collider,wallCollider=wall.collider;\nsim.player.setTranslation({x:-6,y:.85,z:0},true);sim.player.setLinvel({x:0,y:0,z:0},true);sim.manual={x:0,y:0,z:0};\nadvance(2);\nfunction aimAt(p){const from=sim.position;const d=new THREE.Vector3(p.x-from.x,p.y-(from.y+.86),p.z-from.z).normalize();sim.aim={x:d.x,y:d.y,z:d.z};return d;}\nconst d=aimAt(gate.position);\nbehavior.use();\nassert(root.children.filter(o=>o.name==='rpg-rocket').length===1,'Firing creates a visible flying rocket.');\nassert(new THREE.Vector3().copy(sim.player.linvel()).dot(d)<-.7,'Firing applies physical backward recoil.');\nassert(!gate.removed&&gateCollider.isValid(),'Firing does not instantly destroy the gate.');\nconst start=root.children.find(o=>o.name==='rpg-rocket').position.clone();\nadvance(2);\nconst rocket=root.children.find(o=>o.name==='rpg-rocket');\nassert(rocket&&rocket.position.distanceTo(start)>.3,'Rocket travels along its flight path.');\nassert(!gate.removed,'Gate remains solid during early travel.');\nassert(root.children.some(o=>o.name==='rpg-smoke'),'Moving rocket emits a smoke trail.');\nadvance(32);\nassert(gate.removed&&!gateCollider.isValid(),'Rocket impact removes the actual gate collider.');\nassert(root.children.some(o=>o.name==='rpg-explosion'),'Collision creates a visible expanding explosion.');\nassert(!wall.removed&&wallCollider.isValid(),'Gate blast does not destroy a wall beyond its blast radius.');\nbehavior.use();\nassert(!root.children.some(o=>o.name==='rpg-rocket'),'An empty launcher starts reloading instead of firing.');\nbehavior.use();advance(20);\nassert(!root.children.some(o=>o.name==='rpg-rocket'),'Repeated presses cannot bypass reload time.');\nadvance(60);\nsim.player.setTranslation({x:-6,y:.85,z:wall.position.z},true);sim.player.setLinvel({x:0,y:0,z:0},true);\nadvance(2);aimAt({x:wall.position.x,y:2.9,z:wall.position.z});\nbehavior.use();\nassert(root.children.some(o=>o.name==='rpg-rocket'),'Reloaded launcher fires a second rocket.');\nadvance(2);assert(!wall.removed,'Second shot also travels before impact.');\nadvance(43);\nassert(wall.removed&&!wallCollider.isValid(),'Second rocket physically destroys the aimed-at wall.');\nbehavior.dispose();\nassert(!root.children.some(o=>o.name.startsWith('rpg-')),'Disposal removes projectiles and transient effects.');\nassert(gate.removed&&wall.removed,'Destroyed structures stay destroyed after unequipping.');",
+    "name": "Bad Company RPG",
+    "description": "A shoulder-fired RPG with flying rockets, physical recoil, drifting smoke, and fiery impact blasts that demolish nearby wall panels and the gate. Manually reload for another shot.",
+    "usage": "Aim with the camera and press F or click to fire. Press again to reload; wait for “Loaded,” then fire again. Stand back from your target!",
+    "limitations": [
+      "One rocket per load; reloading takes 1.2 seconds.",
+      "Close explosions knock you back and can throw you off ledges.",
+      "Blasts destroy intersecting structural panels as whole pieces, not individual brick-sized holes. Ground, banks, and the rooftop foundation ‘"
+    ],
+    "mount": "player",
+    "spawn": [
+      0,
+      0,
+      0
+    ],
+    "parts": [
+      {
+        "shape": "cylinder",
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          -1.5708
+        ],
+        "scale": [
+          0.23,
+          1.25,
+          0.23
+        ],
+        "color": "#4f603a",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "cylinder",
+        "position": [
+          -0.59,
+          0,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          -1.5708
+        ],
+        "scale": [
+          0.31,
+          0.16,
+          0.31
+        ],
+        "color": "#303b35",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "torus",
+        "position": [
+          0.64,
+          0,
+          0
+        ],
+        "rotation": [
+          0,
+          1.5708,
+          0
+        ],
+        "scale": [
+          0.24,
+          0.24,
+          0.08
+        ],
+        "color": "#28312b",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "cylinder",
+        "position": [
+          0.22,
+          0,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          -1.5708
+        ],
+        "scale": [
+          0.25,
+          0.35,
+          0.25
+        ],
+        "color": "#80734e",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "cone",
+        "position": [
+          0.82,
+          0,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          -1.5708
+        ],
+        "scale": [
+          0.28,
+          0.35,
+          0.28
+        ],
+        "color": "#74814b",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "box",
+        "position": [
+          -0.13,
+          -0.21,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          -0.18
+        ],
+        "scale": [
+          0.14,
+          0.29,
+          0.13
+        ],
+        "color": "#483b2c",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "box",
+        "position": [
+          0.31,
+          -0.19,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0.15
+        ],
+        "scale": [
+          0.11,
+          0.22,
+          0.12
+        ],
+        "color": "#483b2c",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "box",
+        "position": [
+          0.2,
+          0.16,
+          -0.045
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.23,
+          0.08,
+          0.08
+        ],
+        "color": "#242e2d",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "box",
+        "position": [
+          0.3,
+          0.23,
+          -0.045
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.035,
+          0.14,
+          0.08
+        ],
+        "color": "#a7b38d",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "box",
+        "position": [
+          -0.41,
+          -0.12,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.29,
+          0.1,
+          0.3
+        ],
+        "color": "#343a30",
+        "animation": "none",
+        "solid": false
+      }
+    ],
+    "phases": []
+  },
+  "elapsedMs": 65349
+}

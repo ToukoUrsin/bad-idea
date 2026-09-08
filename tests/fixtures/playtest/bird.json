@@ -1,0 +1,288 @@
+{
+  "prompt": "A little mechanical bird that steals the guard's key and brings it to me",
+  "invention": {
+    "name": "Clockwork Keybird",
+    "description": "A little mechanical bird flies to the guard, steals the key, and carries it back to you.",
+    "usage": "Press F to send the bird. Wait for it to return the key, then walk through the gate.",
+    "limitations": [
+      "The bird does not hide you or disable the guard; keep your distance while it retrieves the key.",
+      "Pressing F during retrieval stops the bird's actions."
+    ],
+    "mount": "free",
+    "spawn": [
+      -5.4,
+      1.3,
+      0.6
+    ],
+    "parts": [
+      {
+        "shape": "sphere",
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.55,
+          0.35,
+          0.34
+        ],
+        "color": "#B78A46",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "sphere",
+        "position": [
+          0.28,
+          0.17,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.27,
+          0.27,
+          0.27
+        ],
+        "color": "#D9B76A",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "cone",
+        "position": [
+          0.47,
+          0.16,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          -1.5708
+        ],
+        "scale": [
+          0.13,
+          0.22,
+          0.13
+        ],
+        "color": "#E9C34A",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "sphere",
+        "position": [
+          0.33,
+          0.22,
+          0.115
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.065,
+          0.065,
+          0.045
+        ],
+        "color": "#32DCE8",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "box",
+        "position": [
+          -0.03,
+          0.06,
+          0.32
+        ],
+        "rotation": [
+          0.15,
+          0,
+          0
+        ],
+        "scale": [
+          0.32,
+          0.045,
+          0.43
+        ],
+        "color": "#657985",
+        "animation": "flapZ",
+        "solid": false
+      },
+      {
+        "shape": "box",
+        "position": [
+          -0.03,
+          0.06,
+          -0.32
+        ],
+        "rotation": [
+          -0.15,
+          0,
+          0
+        ],
+        "scale": [
+          0.32,
+          0.045,
+          0.43
+        ],
+        "color": "#657985",
+        "animation": "flapZ",
+        "solid": false
+      },
+      {
+        "shape": "box",
+        "position": [
+          -0.34,
+          0.04,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          -0.2
+        ],
+        "scale": [
+          0.3,
+          0.045,
+          0.25
+        ],
+        "color": "#657985",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "torus",
+        "position": [
+          0.12,
+          -0.23,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.17,
+          0.17,
+          0.055
+        ],
+        "color": "#D9B76A",
+        "animation": "none",
+        "solid": false
+      }
+    ],
+    "phases": [
+      {
+        "label": "Fly to the key",
+        "actions": [
+          {
+            "op": "seek",
+            "target": "key",
+            "vector": [
+              0,
+              0,
+              0
+            ],
+            "strength": 4,
+            "radius": 1
+          }
+        ],
+        "until": {
+          "kind": "near",
+          "target": "key",
+          "value": 0.6
+        }
+      },
+      {
+        "label": "Snatch the key",
+        "actions": [
+          {
+            "op": "seek",
+            "target": "key",
+            "vector": [
+              0,
+              0,
+              0
+            ],
+            "strength": 4,
+            "radius": 1
+          },
+          {
+            "op": "grab",
+            "target": "key",
+            "vector": [
+              0,
+              0,
+              0
+            ],
+            "strength": 0,
+            "radius": 0.8
+          }
+        ],
+        "until": {
+          "kind": "hasKey",
+          "target": "self",
+          "value": 0
+        }
+      },
+      {
+        "label": "Bring the key back",
+        "actions": [
+          {
+            "op": "seek",
+            "target": "player",
+            "vector": [
+              0,
+              0.1,
+              0
+            ],
+            "strength": 4,
+            "radius": 1
+          }
+        ],
+        "until": {
+          "kind": "near",
+          "target": "player",
+          "value": 1
+        }
+      },
+      {
+        "label": "Hand over the key",
+        "actions": [
+          {
+            "op": "deliver",
+            "target": "player",
+            "vector": [
+              0,
+              0,
+              0
+            ],
+            "strength": 0,
+            "radius": 1.5
+          }
+        ],
+        "until": {
+          "kind": "time",
+          "target": "self",
+          "value": 0.3
+        }
+      }
+    ]
+  },
+  "elapsedMs": 13006,
+  "model": "gpt-6-astra",
+  "serviceTier": "fast"
+}

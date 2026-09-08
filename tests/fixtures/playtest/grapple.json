@@ -1,0 +1,247 @@
+{
+  "prompt": "A grappling hook that hooks the top of the prison wall and pulls me over it",
+  "invention": {
+    "name": "Walltop Grappling Hook",
+    "description": "A wall-top grappling hook pulls you up and toward the far side, but cannot physically latch or simulate a rope.",
+    "usage": "Press F to grapple. Hold forward toward the wall during the pull and keep steering toward the exit as you descend.",
+    "limitations": [
+      "Physical hooking, fired projectiles, and rope simulation are unsupported; the hook starts above the wall and applies attraction.",
+      "The hook moves toward the exit after lifting you; it is not a fixed anchor.",
+      "The pull does not guarantee wall clearance or a safe landing. Steer toward the exit and avoid the ground edge at x=10."
+    ],
+    "mount": "free",
+    "spawn": [
+      3,
+      6,
+      0
+    ],
+    "parts": [
+      {
+        "shape": "cylinder",
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.12,
+          0.7,
+          0.12
+        ],
+        "color": "#657483",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "torus",
+        "position": [
+          0,
+          -0.43,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.25,
+          0.25,
+          0.09
+        ],
+        "color": "#D7A62C",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "box",
+        "position": [
+          -0.2,
+          0.25,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0.65
+        ],
+        "scale": [
+          0.45,
+          0.1,
+          0.12
+        ],
+        "color": "#8796A5",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "box",
+        "position": [
+          0.2,
+          0.25,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          -0.65
+        ],
+        "scale": [
+          0.45,
+          0.1,
+          0.12
+        ],
+        "color": "#8796A5",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "cone",
+        "position": [
+          -0.37,
+          0.28,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          -0.3
+        ],
+        "scale": [
+          0.16,
+          0.3,
+          0.16
+        ],
+        "color": "#CCD5DD",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "cone",
+        "position": [
+          0.37,
+          0.28,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0.3
+        ],
+        "scale": [
+          0.16,
+          0.3,
+          0.16
+        ],
+        "color": "#CCD5DD",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "cylinder",
+        "position": [
+          0,
+          -0.16,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.2,
+          0.18,
+          0.2
+        ],
+        "color": "#D7A62C",
+        "animation": "none",
+        "solid": false
+      }
+    ],
+    "phases": [
+      {
+        "label": "Pull toward wall-top hook",
+        "actions": [
+          {
+            "op": "attract",
+            "target": "player",
+            "vector": [
+              0,
+              0,
+              0
+            ],
+            "strength": 25,
+            "radius": 1
+          }
+        ],
+        "until": {
+          "kind": "above",
+          "target": "player",
+          "value": 5
+        }
+      },
+      {
+        "label": "Pull across the wall",
+        "actions": [
+          {
+            "op": "seek",
+            "target": "exit",
+            "vector": [
+              0,
+              5,
+              0
+            ],
+            "strength": 4,
+            "radius": 1
+          },
+          {
+            "op": "attract",
+            "target": "player",
+            "vector": [
+              0,
+              0,
+              0
+            ],
+            "strength": 18,
+            "radius": 1
+          }
+        ],
+        "until": {
+          "kind": "time",
+          "target": "self",
+          "value": 0.8
+        }
+      },
+      {
+        "label": "Release pull and damp descent",
+        "actions": [
+          {
+            "op": "drag",
+            "target": "player",
+            "vector": [
+              0,
+              0,
+              0
+            ],
+            "strength": 3,
+            "radius": 1
+          }
+        ],
+        "until": {
+          "kind": "time",
+          "target": "self",
+          "value": 2
+        }
+      }
+    ]
+  },
+  "elapsedMs": 13815,
+  "model": "gpt-6-astra",
+  "serviceTier": "fast"
+}

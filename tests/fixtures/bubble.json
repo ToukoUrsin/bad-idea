@@ -1,0 +1,267 @@
+{
+  "invention": {
+    "name": "Personal Brrr-imeter",
+    "description": "A wearable frost generator with open bubble rings. Continuously freezes the guard within 4.5m; walk within 1.5m of the frozen guard to pick up his key.",
+    "mount": "player",
+    "spawn": [
+      0,
+      0,
+      0
+    ],
+    "parts": [
+      {
+        "shape": "box",
+        "position": [
+          0,
+          0.1,
+          -0.4
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.65,
+          0.75,
+          0.3
+        ],
+        "color": "#EBA543"
+      },
+      {
+        "shape": "box",
+        "position": [
+          0,
+          0.12,
+          -0.58
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.43,
+          0.46,
+          0.09
+        ],
+        "color": "#344E59"
+      },
+      {
+        "shape": "cylinder",
+        "position": [
+          -0.4,
+          0.08,
+          -0.4
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.22,
+          0.65,
+          0.22
+        ],
+        "color": "#85DBEC"
+      },
+      {
+        "shape": "cylinder",
+        "position": [
+          0.4,
+          0.08,
+          -0.4
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.22,
+          0.65,
+          0.22
+        ],
+        "color": "#85DBEC"
+      },
+      {
+        "shape": "sphere",
+        "position": [
+          -0.4,
+          0.46,
+          -0.4
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.24,
+          0.24,
+          0.24
+        ],
+        "color": "#DAFAFF"
+      },
+      {
+        "shape": "sphere",
+        "position": [
+          0.4,
+          0.46,
+          -0.4
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.24,
+          0.24,
+          0.24
+        ],
+        "color": "#DAFAFF"
+      },
+      {
+        "shape": "box",
+        "position": [
+          -0.24,
+          0.18,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.09,
+          0.65,
+          0.47
+        ],
+        "color": "#B9753C"
+      },
+      {
+        "shape": "box",
+        "position": [
+          0.24,
+          0.18,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.09,
+          0.65,
+          0.47
+        ],
+        "color": "#B9753C"
+      },
+      {
+        "shape": "torus",
+        "position": [
+          0,
+          0.05,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          2.15,
+          2.15,
+          0.045
+        ],
+        "color": "#8FE5EF"
+      },
+      {
+        "shape": "torus",
+        "position": [
+          0,
+          0.05,
+          0
+        ],
+        "rotation": [
+          0,
+          1.5708,
+          0
+        ],
+        "scale": [
+          2.15,
+          2.15,
+          0.045
+        ],
+        "color": "#B9F1F5"
+      },
+      {
+        "shape": "torus",
+        "position": [
+          0,
+          0.05,
+          0
+        ],
+        "rotation": [
+          1.5708,
+          0,
+          0
+        ],
+        "scale": [
+          2.15,
+          2.15,
+          0.045
+        ],
+        "color": "#69CADF"
+      },
+      {
+        "shape": "sphere",
+        "position": [
+          0,
+          0.12,
+          -0.66
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.22,
+          0.22,
+          0.1
+        ],
+        "color": "#A8F4FF"
+      }
+    ],
+    "phases": [
+      {
+        "label": "Keep the personal freeze field running",
+        "actions": [
+          {
+            "op": "freeze",
+            "target": "guard",
+            "vector": [
+              0,
+              0,
+              0
+            ],
+            "strength": 3,
+            "radius": 4.5
+          }
+        ],
+        "until": {
+          "kind": "never",
+          "target": "self",
+          "value": 0
+        }
+      }
+    ]
+  },
+  "elapsedMs": 15923,
+  "model": "gpt-6-astra"
+}

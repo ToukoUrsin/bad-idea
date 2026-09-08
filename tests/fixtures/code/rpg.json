@@ -1,0 +1,237 @@
+{
+  "invention": {
+    "code": "const {THREE,RAPIER,sim,world,view,root}=game;\nconst V=THREE.Vector3;\nconst rockets=[], effects=[];\nlet cooldown=0,recoil=0,shake=0,clock=0,disposed=false;\nconst geometries={sphere:new THREE.SphereGeometry(1,12,8),box:new THREE.BoxGeometry(1,1,1),tube:new THREE.CylinderGeometry(.075,.075,.55,12),nose:new THREE.ConeGeometry(.105,.23,12)};\nconst materials={metal:new THREE.MeshStandardMaterial({color:0x667344,metalness:.55,roughness:.4}),fin:new THREE.MeshStandardMaterial({color:0x353b39}),flame:new THREE.MeshBasicMaterial({color:0xffd36b}),smoke:new THREE.MeshBasicMaterial({color:0x777b79,transparent:true,opacity:.42,depthWrite:false}),blast:new THREE.MeshBasicMaterial({color:0xff841f,transparent:true,opacity:.48,depthWrite:false}),debris:new THREE.MeshStandardMaterial({color:0xb4b4a6,roughness:1})};\nconst layer=new THREE.Group();layer.name='RPG effects';root.add(layer);\nfunction mesh(geometry,material,parent){const m=new THREE.Mesh(geometry,material);parent.add(m);return m;}\nfunction particle(p,v,size,life,kind,gravity=0){\n if(effects.length>=180){const old=effects.shift();old.mesh.removeFromParent();}\n const m=mesh(kind==='debris'?geometries.box:geometries.sphere,materials[kind],layer);m.position.copy(p);m.scale.setScalar(size);\n effects.push({mesh:m,v:v.clone(),size,life,max:life,kind,gravity});\n}\nfunction boxDistance(p,e){const c=e.id==='guard'?{x:sim.guard.x,y:sim.guard.y+.9,z:sim.guard.z}:e.position;return Math.hypot(Math.max(0,Math.abs(p.x-c.x)-e.half.x),Math.max(0,Math.abs(p.y-c.y)-e.half.y),Math.max(0,Math.abs(p.z-c.z)-e.half.z));}\nfunction explode(p){\n const radius=1.25;let broken=0;\n for(const e of game.entities){\n  if(e.removed||['ground','near-bank','far-bank','rooftop'].includes(e.id))continue;\n  if(boxDistance(p,e)>radius)continue;\n  game.removeEntity(e);broken++;\n }\n const away=new V(sim.position.x,sim.position.y,sim.position.z).sub(p),distance=away.length();\n if(distance<3){away.normalize();away.y+=.35;away.normalize().multiplyScalar((1-distance/3)*5);sim.player.applyImpulse({x:away.x,y:away.y,z:away.z},true);}\n particle(p,new V(),.12,.42,'blast');particle(p,new V(),.18,.16,'flame');\n for(let i=0;i<22;i++){const d=new V(Math.random()*2-1,Math.random()*1.7-.3,Math.random()*2-1).normalize().multiplyScalar(2+Math.random()*5);particle(p,d,.05+Math.random()*.1,.65+Math.random()*.55,'debris',9);}\n for(let i=0;i<8;i++)particle(p,new V(Math.random()-.5,.7+Math.random(),Math.random()-.5),.18,.8+Math.random()*.4,'smoke');\n shake=Math.max(shake,Math.max(.015,.09*(1-distance/18)));\n game.sound(75,.32,.13,24);game.say(broken?'BOOM — breach open. Reloading automatically.':'BOOM! Keep some distance from the blast.');\n}\nfunction guardHit(origin,dir,length){\n const e=game.entities.find(e=>e.id==='guard'&&!e.removed);\n if(!e||!sim.guardEnabled)return null;\n let near=0,far=length;\n const center={x:sim.guard.x,y:sim.guard.y+.9,z:sim.guard.z};\n for(const axis of ['x','y','z']){\n  const lo=center[axis]-e.half[axis],hi=center[axis]+e.half[axis];\n  if(Math.abs(dir[axis])<1e-8){if(origin[axis]<lo||origin[axis]>hi)return null;}\n  else{let a=(lo-origin[axis])/dir[axis],b=(hi-origin[axis])/dir[axis];if(a>b){const t=a;a=b;b=t;}near=Math.max(near,a);far=Math.min(far,b);if(near>far)return null;}\n }\n return near;\n}\nfunction use(){\n if(disposed)return;\n if(cooldown>0){game.say('Reloading — ready in a moment.');return;}\n cooldown=.72;recoil=1;shake=.022;\n const dir=new V(sim.aim.x,sim.aim.y,sim.aim.z);if(dir.lengthSq()<.01)dir.set(1,0,0);dir.normalize();\n const eye=new V(sim.position.x,sim.position.y+.86,sim.position.z);\n const body=new THREE.Group();body.name='flying-rocket';layer.add(body);body.position.copy(eye).addScaledVector(dir,.28);body.quaternion.setFromUnitVectors(new V(0,1,0),dir);\n mesh(geometries.tube,materials.metal,body);\n const nose=mesh(geometries.nose,materials.metal,body);nose.position.y=.36;\n for(let i=0;i<4;i++){const fin=mesh(geometries.box,materials.fin,body);fin.scale.set(.24,.16,.025);fin.position.y=-.2;fin.rotation.y=i*Math.PI/2;}\n const flame=mesh(geometries.sphere,materials.flame,body);flame.position.y=-.44;flame.scale.set(.08,.23,.08);\n rockets.push({body,flame,dir,previous:eye,age:0,trail:0});\n sim.player.applyImpulse({x:-dir.x*.22,y:0,z:-dir.z*.22},true);\n particle(eye.clone().addScaledVector(dir,.7),new V(),.13,.07,'flame');\n game.sound(145,.17,.12,48);game.sound(480,.08,.055,110);game.say('WHOOSH! Rocket away.');\n}\nfunction step(dt){\n if(disposed)return;\n clock+=dt;const was=cooldown;cooldown=Math.max(0,cooldown-dt);if(was>0&&cooldown===0)game.sound(620,.045,.045,820);\n recoil=Math.max(0,recoil-dt*5);shake*=Math.exp(-dt*12);\n for(let i=rockets.length-1;i>=0;i--){\n  const r=rockets[i];r.age+=dt;\n  const end=r.body.position.clone().addScaledVector(r.dir,20*dt),length=end.distanceTo(r.previous);\n  const hit=world.castRay(new RAPIER.Ray({x:r.previous.x,y:r.previous.y,z:r.previous.z},{x:r.dir.x,y:r.dir.y,z:r.dir.z}),length,true,undefined,undefined,undefined,sim.player);\n  let impact=hit?hit.timeOfImpact:Infinity;\n  const gh=guardHit(r.previous,r.dir,length);if(gh!==null)impact=Math.min(impact,gh);\n  if(impact<=length){const p=r.previous.clone().addScaledVector(r.dir,impact);explode(p);r.body.removeFromParent();rockets.splice(i,1);continue;}\n  r.body.position.copy(end);r.previous.copy(end);r.flame.scale.y=.18+Math.sin(clock*90)*.06;\n  r.trail+=dt;if(r.trail>=.035){r.trail=0;particle(end.clone().addScaledVector(r.dir,-.4),r.dir.clone().multiplyScalar(-.45).add(new V(0,.2,0)),.065,.65,'smoke');}\n  if(r.age>=4){r.body.removeFromParent();rockets.splice(i,1);}\n }\n for(let i=effects.length-1;i>=0;i--){const e=effects[i];e.life-=dt;if(e.life<=0){e.mesh.removeFromParent();effects.splice(i,1);continue;}const t=1-e.life/e.max;e.v.y-=e.gravity*dt;e.mesh.position.addScaledVector(e.v,dt);\n  let size=e.size*(1-t);if(e.kind==='smoke')size=e.size*(1+4*t)*(1-t);if(e.kind==='blast')size=1.25*Math.sin(Math.PI*t);if(e.kind==='flame')size=e.size*(1+3*t)*(1-t);\n  e.mesh.scale.setScalar(Math.max(.001,size));if(e.kind==='debris'){e.mesh.rotation.x+=dt*7;e.mesh.rotation.z+=dt*4;}\n }\n}\nconst modelBasis=new THREE.Quaternion().setFromAxisAngle(new V(0,1,0),Math.PI/2);\nfunction render(){\n if(disposed)return;\n const camera=game.camera;\n if(view.firstPerson!==false){\n  const offset=new V(.32,-.34,-.43+recoil*.14).applyQuaternion(camera.quaternion);\n  view.invention.position.copy(camera.position).add(offset);view.invention.quaternion.copy(camera.quaternion).multiply(modelBasis);view.invention.rotateZ(recoil*.075);\n }\n if(shake>.001){camera.position.x+=Math.sin(clock*113)*shake;camera.position.y+=Math.sin(clock*139)*shake*.7;}\n}\nfunction dispose(){disposed=true;rockets.length=0;effects.length=0;layer.removeFromParent();layer.clear();for(const g of Object.values(geometries))g.dispose();for(const m of Object.values(materials))m.dispose();}\nreturn {use,step,render,dispose};",
+    "test": "const {sim,world,THREE}=game;\nconst gate=game.entities.find(e=>e.id==='gate');const wall=game.entities.find(e=>e.id==='wall-right');const other=game.entities.find(e=>e.id==='wall-left');\nassert(gate&&wall&&other,'Courtyard contains gate and prison walls');\nconst flying=()=>{const a=[];game.root.traverse(o=>{if(o.name==='flying-rocket')a.push(o);});return a;};\nfunction aimAt(e){const p=sim.position;const d=new THREE.Vector3(e.position.x-p.x,e.position.y-(p.y+.86),e.position.z-p.z).normalize();sim.aim={x:d.x,y:d.y,z:d.z};}\nsim.autoRun=false;sim.manual={x:0,y:0,z:0};sim.player.setTranslation({x:gate.position.x-10,y:.85,z:gate.position.z},true);sim.player.setLinvel({x:0,y:0,z:0},true);advance(2);aimAt(gate);\nconst gateCollider=gate.collider;\nbehavior.use();assert(flying().length===1,'Firing creates a visible flying rocket');const initial=flying()[0].position.clone();behavior.use();assert(flying().length===1,'Reload prevents instant duplicate shots');\nadvance(2);assert(!gate.removed&&gateCollider.isValid(),'Gate survives the early flight frames');assert(flying().length===1&&flying()[0].position.distanceTo(initial)>.5,'Rocket actually travels toward the target');\nadvance(35);assert(gate.removed&&!gateCollider.isValid(),'Rocket impact removes the gate collider');assert(sim.gateOpen,'Destroyed gate is physically open');assert(!wall.removed&&!other.removed,'Gate blast does not destroy walls outside its radius');\nadvance(12);sim.player.setTranslation({x:wall.position.x-10,y:.85,z:wall.position.z},true);sim.player.setLinvel({x:0,y:0,z:0},true);advance(2);aimAt(wall);const wallCollider=wall.collider;\nbehavior.use();assert(flying().length===1,'Launcher fires again after automatic reload');advance(2);assert(!wall.removed,'Second rocket also takes time to reach its target');advance(35);assert(wall.removed&&!wallCollider.isValid(),'Second impact blasts open a prison wall');assert(!other.removed,'Distant prison wall remains intact');assert(game.entities.find(e=>e.id==='ground').collider.isValid(),'Breach leaves walkable ground intact');",
+    "name": "Bad Idea RPG",
+    "description": "A shoulder-fired rocket launcher with visible flying rockets, smoky exhaust, punchy recoil, and explosive impacts that breach prison walls and the gate.",
+    "usage": "Aim at the gate or a prison wall and press F or click. Fire again after the reload click. Walk through your breach; stand back from explosions.",
+    "limitations": [
+      "Automatic reload takes about three-quarters of a second.",
+      "Nearby explosions can knock you backward.",
+      "Rockets fly straight without homing; missed rockets burn out after four seconds."
+    ],
+    "mount": "player",
+    "spawn": [
+      0,
+      0,
+      0
+    ],
+    "parts": [
+      {
+        "shape": "cylinder",
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          -1.5708
+        ],
+        "scale": [
+          0.22,
+          1.22,
+          0.22
+        ],
+        "color": "#526342",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "cylinder",
+        "position": [
+          -0.55,
+          0,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          -1.5708
+        ],
+        "scale": [
+          0.3,
+          0.16,
+          0.3
+        ],
+        "color": "#333b36",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "torus",
+        "position": [
+          0.62,
+          0,
+          0
+        ],
+        "rotation": [
+          0,
+          1.5708,
+          0
+        ],
+        "scale": [
+          0.23,
+          0.23,
+          0.11
+        ],
+        "color": "#252e2c",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "cylinder",
+        "position": [
+          0.57,
+          0,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          -1.5708
+        ],
+        "scale": [
+          0.145,
+          0.13,
+          0.145
+        ],
+        "color": "#111a19",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "box",
+        "position": [
+          -0.13,
+          -0.2,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          -0.2
+        ],
+        "scale": [
+          0.13,
+          0.3,
+          0.12
+        ],
+        "color": "#46382a",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "box",
+        "position": [
+          0.25,
+          -0.13,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.28,
+          0.12,
+          0.17
+        ],
+        "color": "#766346",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "box",
+        "position": [
+          -0.3,
+          -0.07,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.3,
+          0.13,
+          0.27
+        ],
+        "color": "#393e32",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "box",
+        "position": [
+          0.12,
+          0.16,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.12,
+          0.15,
+          0.07
+        ],
+        "color": "#303935",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "torus",
+        "position": [
+          0.13,
+          0.25,
+          0
+        ],
+        "rotation": [
+          0,
+          1.5708,
+          0
+        ],
+        "scale": [
+          0.12,
+          0.12,
+          0.035
+        ],
+        "color": "#b5bd88",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "box",
+        "position": [
+          -0.2,
+          0.105,
+          0.035
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.21,
+          0.035,
+          0.12
+        ],
+        "color": "#dfb34e",
+        "animation": "none",
+        "solid": false
+      }
+    ],
+    "phases": []
+  },
+  "artifactId": "mtt4re6h",
+  "elapsedMs": 49447,
+  "model": "gpt-6-astra",
+  "serviceTier": "fast"
+}

@@ -1,0 +1,373 @@
+{
+  "invention": {
+    "name": "Hot Wheels, Soft Landing",
+    "description": "Twin rocket skates deliver a one-second forward-and-upward boost. Parachute braking activates when you start falling. The canopy is always visible; deployment animation is not audt",
+    "mount": "player",
+    "spawn": [
+      0,
+      0,
+      0
+    ],
+    "parts": [
+      {
+        "shape": "box",
+        "position": [
+          0,
+          -0.6,
+          -0.22
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.7,
+          0.16,
+          0.25
+        ],
+        "color": "#F49B35"
+      },
+      {
+        "shape": "box",
+        "position": [
+          0,
+          -0.6,
+          0.22
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.7,
+          0.16,
+          0.25
+        ],
+        "color": "#F49B35"
+      },
+      {
+        "shape": "cylinder",
+        "position": [
+          -0.23,
+          -0.73,
+          -0.22
+        ],
+        "rotation": [
+          1.5708,
+          0,
+          0
+        ],
+        "scale": [
+          0.22,
+          0.31,
+          0.22
+        ],
+        "color": "#353E49"
+      },
+      {
+        "shape": "cylinder",
+        "position": [
+          0.23,
+          -0.73,
+          -0.22
+        ],
+        "rotation": [
+          1.5708,
+          0,
+          0
+        ],
+        "scale": [
+          0.22,
+          0.31,
+          0.22
+        ],
+        "color": "#353E49"
+      },
+      {
+        "shape": "cylinder",
+        "position": [
+          -0.23,
+          -0.73,
+          0.22
+        ],
+        "rotation": [
+          1.5708,
+          0,
+          0
+        ],
+        "scale": [
+          0.22,
+          0.31,
+          0.22
+        ],
+        "color": "#353E49"
+      },
+      {
+        "shape": "cylinder",
+        "position": [
+          0.23,
+          -0.73,
+          0.22
+        ],
+        "rotation": [
+          1.5708,
+          0,
+          0
+        ],
+        "scale": [
+          0.22,
+          0.31,
+          0.22
+        ],
+        "color": "#353E49"
+      },
+      {
+        "shape": "cylinder",
+        "position": [
+          -0.13,
+          -0.43,
+          -0.22
+        ],
+        "rotation": [
+          0,
+          0,
+          -1.5708
+        ],
+        "scale": [
+          0.19,
+          0.58,
+          0.19
+        ],
+        "color": "#DB5944"
+      },
+      {
+        "shape": "cylinder",
+        "position": [
+          -0.13,
+          -0.43,
+          0.22
+        ],
+        "rotation": [
+          0,
+          0,
+          -1.5708
+        ],
+        "scale": [
+          0.19,
+          0.58,
+          0.19
+        ],
+        "color": "#DB5944"
+      },
+      {
+        "shape": "cone",
+        "position": [
+          -0.57,
+          -0.43,
+          -0.22
+        ],
+        "rotation": [
+          0,
+          0,
+          1.5708
+        ],
+        "scale": [
+          0.15,
+          0.35,
+          0.15
+        ],
+        "color": "#FFC54A"
+      },
+      {
+        "shape": "cone",
+        "position": [
+          -0.57,
+          -0.43,
+          0.22
+        ],
+        "rotation": [
+          0,
+          0,
+          1.5708
+        ],
+        "scale": [
+          0.15,
+          0.35,
+          0.15
+        ],
+        "color": "#FFC54A"
+      },
+      {
+        "shape": "sphere",
+        "position": [
+          0,
+          2.15,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          2.9,
+          0.65,
+          2.5
+        ],
+        "color": "#F4A33B"
+      },
+      {
+        "shape": "box",
+        "position": [
+          -0.55,
+          1.22,
+          -0.45
+        ],
+        "rotation": [
+          0.35,
+          0,
+          -0.45
+        ],
+        "scale": [
+          0.035,
+          1.8,
+          0.035
+        ],
+        "color": "#F5E5BF"
+      },
+      {
+        "shape": "box",
+        "position": [
+          0.55,
+          1.22,
+          -0.45
+        ],
+        "rotation": [
+          0.35,
+          0,
+          0.45
+        ],
+        "scale": [
+          0.035,
+          1.8,
+          0.035
+        ],
+        "color": "#F5E5BF"
+      },
+      {
+        "shape": "box",
+        "position": [
+          -0.55,
+          1.22,
+          0.45
+        ],
+        "rotation": [
+          -0.35,
+          0,
+          -0.45
+        ],
+        "scale": [
+          0.035,
+          1.8,
+          0.035
+        ],
+        "color": "#F5E5BF"
+      },
+      {
+        "shape": "box",
+        "position": [
+          0.55,
+          1.22,
+          0.45
+        ],
+        "rotation": [
+          -0.35,
+          0,
+          0.45
+        ],
+        "scale": [
+          0.035,
+          1.8,
+          0.035
+        ],
+        "color": "#F5E5BF"
+      },
+      {
+        "shape": "box",
+        "position": [
+          0,
+          0.12,
+          -0.38
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.48,
+          0.55,
+          0.24
+        ],
+        "color": "#B45F3D"
+      }
+    ],
+    "phases": [
+      {
+        "label": "Light the skate rockets",
+        "actions": [
+          {
+            "op": "force",
+            "target": "player",
+            "vector": [
+              1,
+              1.7,
+              0
+            ],
+            "strength": 10,
+            "radius": 1
+          }
+        ],
+        "until": {
+          "kind": "time",
+          "target": "self",
+          "value": 1
+        }
+      },
+      {
+        "label": "Coast until descent",
+        "actions": [],
+        "until": {
+          "kind": "falling",
+          "target": "player",
+          "value": 0
+        }
+      },
+      {
+        "label": "Engage parachute braking",
+        "actions": [
+          {
+            "op": "drag",
+            "target": "player",
+            "vector": [
+              0,
+              0,
+              0
+            ],
+            "strength": 4,
+            "radius": 1
+          }
+        ],
+        "until": {
+          "kind": "never",
+          "target": "self",
+          "value": 0
+        }
+      }
+    ]
+  },
+  "elapsedMs": 31953,
+  "model": "gpt-6-astra"
+}

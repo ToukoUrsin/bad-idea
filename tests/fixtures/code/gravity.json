@@ -1,0 +1,173 @@
+{
+  "invention": {
+    "code": "const {THREE,sim,world,view,camera}=game;\nconst originalGravity={x:world.gravity.x,y:world.gravity.y,z:world.gravity.z};\nconst originalActive=sim.inventionActive;\nlet moon=false,time=0,disposed=false;\nconst ringGroup=new THREE.Group();\nringGroup.name='Moon remote halo';\nview.invention.add(ringGroup);\nconst ringGeometry=new THREE.TorusGeometry(.245,.012,8,64);\nconst ringMaterial=new THREE.MeshBasicMaterial({color:0xffb85c,transparent:true,opacity:.35,depthTest:false,depthWrite:false});\nconst ring=new THREE.Mesh(ringGeometry,ringMaterial);\nring.name='Gravity status ring';\nring.rotation.x=Math.PI/2;\nring.renderOrder=20;\nringGroup.add(ring);\nconst beadGeometry=new THREE.SphereGeometry(.024,10,8);\nconst beadMaterial=new THREE.MeshBasicMaterial({color:0xe0ffff,depthTest:false,depthWrite:false});\nconst bead=new THREE.Mesh(beadGeometry,beadMaterial);\nbead.renderOrder=21;\nringGroup.add(bead);\nconst heldRotation=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),Math.PI/2);\nfunction show(){\n ringGroup.position.set(.65,moon?-.23+Math.sin(time*2.6)*.035:-.34,.3);\n ringGroup.rotation.set(moon?Math.sin(time)*.16:0,moon?time*.8:0,moon?.18:0);\n ringMaterial.color.setHex(moon?0x65eeff:0xffb85c);\n ringMaterial.opacity=moon?.9:.35;\n bead.visible=moon;\n bead.position.set(Math.cos(time*2)*.245,0,Math.sin(time*2)*.245);\n}\nfunction gravity(){world.gravity={x:originalGravity.x*(moon?1/6:1),y:originalGravity.y*(moon?1/6:1),z:originalGravity.z*(moon?1/6:1)};}\nshow();\nreturn {\n use(){\n  if(disposed)return;\n  moon=!moon;\n  sim.inventionActive=moon;\n  gravity();\n  world.forEachRigidBody(body=>{if(body.isDynamic())body.wakeUp();});\n  show();\n  game.say(moon?'MOON GRAVITY — jump higher, drift down slowly.':'NORMAL GRAVITY — feet back on Earth.');\n  game.sound(moon?320:640,.16,.07,moon?850:200);\n },\n step(dt){\n  if(disposed)return;\n  time+=dt;\n  sim.inventionActive=moon;\n  if(moon){\n   // Remove the controller’s extra heavy-fall force, including on the first toggled frame.\n   // The ordinary jump launch stays unchanged; reduced gravity supplies real extra height and airtime.\n   sim.player.resetForces(true);\n  }\n  show();\n },\n render(){\n  if(disposed)return;\n  if(view.firstPerson!==false){\n   view.invention.position.copy(camera.position);\n   view.invention.quaternion.copy(camera.quaternion).multiply(heldRotation);\n  }\n },\n dispose(){\n  if(disposed)return;\n  disposed=true;\n  world.gravity={...originalGravity};\n  sim.inventionActive=originalActive;\n  world.forEachRigidBody(body=>{if(body.isDynamic())body.wakeUp();});\n  ringGroup.removeFromParent();\n  ringGeometry.dispose();ringMaterial.dispose();beadGeometry.dispose();beadMaterial.dispose();\n }\n};",
+    "test": "const {sim,world,RAPIER,view}=game;\nconst normalGravity=world.gravity.y;\nsim.autoRun=false;sim.manual={x:0,y:0,z:0};\nsim.player.setTranslation({x:-6,y:.8,z:0},true);\nsim.player.setLinvel({x:0,y:0,z:0},true);\nsim.aim={x:1,y:0,z:0};\nadvance(2);advance(45);\nsim.jump();advance(25);\nconst normalJumpHeight=sim.position.y;\nassert(normalJumpHeight>1.4,'Ordinary jump launches physically before toggling');\nadvance(100);\nbehavior.use();\nassert(Math.abs(world.gravity.y-normalGravity/6)<.001,'F changes global gravity to one sixth');\nsim.jump();advance(60);\nassert(sim.position.y>normalJumpHeight+2,'Moon gravity produces a substantially higher real jump');\nassert(sim.player.linvel().y>2,'Moon jump is still ascending after a full second');\nconst halo=view.invention.getObjectByName('Gravity status ring');\nassert(halo && halo.visible && halo.material.opacity>.8,'Moon mode has a bright visible halo');\nconst probe=world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(-5,18,1));\nworld.createCollider(RAPIER.ColliderDesc.ball(.1).setMass(1),probe);\ntry{\n sim.player.setTranslation({x:-6,y:12,z:0},true);\n sim.player.setLinvel({x:0,y:0,z:0},true);\n advance(2);\n sim.player.setLinvel({x:0,y:0,z:0},true);\n probe.setLinvel({x:0,y:0,z:0},true);\n advance(30);\n const moonFall=sim.player.linvel().y;\n assert(moonFall<-.6 && moonFall>-1.1,'Player falls under actual lunar acceleration');\n assert(Math.abs(probe.linvel().y-normalGravity/12)<.1,'Independent dynamic bodies also experience moon gravity');\n behavior.use();\n assert(Math.abs(world.gravity.y-normalGravity)<.001,'Second F restores normal global gravity');\n sim.player.setTranslation({x:-6,y:12,z:0},true);\n sim.player.setLinvel({x:0,y:0,z:0},true);\n probe.setLinvel({x:0,y:0,z:0},true);\n advance(30);\n assert(sim.player.linvel().y<moonFall*4,'Normal mode restores the much faster ordinary fall');\n assert(Math.abs(probe.linvel().y-normalGravity/2)<.1,'Normal gravity is restored for other bodies too');\n assert(halo.material.opacity<.5,'Halo visibly returns to its dim normal state');\n behavior.use();behavior.use();\n assert(Math.abs(world.gravity.y-normalGravity)<.001,'Every press toggles, including rapid consecutive presses');\n}finally{world.removeRigidBody(probe);}",
+    "name": "Pocket Moon Remote",
+    "description": "A tiny remote switches the whole world's gravity to one-sixth strength and back. Its amber ring lifts into a bright cyan orbit in moon mode, while real physics gives you higher, un",
+    "usage": "Press F to toggle moon gravity. Press Space to jump and steer with WASD. Press F again to restore normal gravity—even in midair.",
+    "limitations": [
+      "Switching gravity does not cancel your current momentum; a fast fall takes time to slow.",
+      "Moon jumps take longer to land. Fixed buildings stay anchored."
+    ],
+    "mount": "player",
+    "spawn": [
+      0,
+      0,
+      0
+    ],
+    "parts": [
+      {
+        "shape": "box",
+        "position": [
+          0.65,
+          -0.35,
+          0.3
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.34,
+          0.11,
+          0.19
+        ],
+        "color": "#263442",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "box",
+        "position": [
+          0.65,
+          -0.29,
+          0.3
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.3,
+          0.035,
+          0.16
+        ],
+        "color": "#c5d1d5",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "box",
+        "position": [
+          0.73,
+          -0.267,
+          0.3
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.105,
+          0.045,
+          0.12
+        ],
+        "color": "#193f54",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "sphere",
+        "position": [
+          0.73,
+          -0.239,
+          0.3
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.06,
+          0.035,
+          0.06
+        ],
+        "color": "#d7f4ef",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "cylinder",
+        "position": [
+          0.57,
+          -0.256,
+          0.3
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.082,
+          0.035,
+          0.082
+        ],
+        "color": "#ffb85c",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "cylinder",
+        "position": [
+          0.855,
+          -0.34,
+          0.3
+        ],
+        "rotation": [
+          0,
+          0,
+          1.5708
+        ],
+        "scale": [
+          0.035,
+          0.14,
+          0.035
+        ],
+        "color": "#8da8b8",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "sphere",
+        "position": [
+          0.93,
+          -0.34,
+          0.3
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.055,
+          0.055,
+          0.055
+        ],
+        "color": "#65eeff",
+        "animation": "none",
+        "solid": false
+      }
+    ],
+    "phases": []
+  },
+  "artifactId": "mtt4tk1r",
+  "elapsedMs": 40399,
+  "model": "gpt-6-astra",
+  "serviceTier": "fast"
+}

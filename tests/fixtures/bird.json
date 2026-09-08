@@ -1,0 +1,352 @@
+{
+  "invention": {
+    "name": "Pocket Pickpecker",
+    "description": "A little brass mechanical bird flies to the guard’s key, snatches it in its claw, and flies back to hand it to you.",
+    "mount": "free",
+    "spawn": [
+      -5.5,
+      1.8,
+      0
+    ],
+    "parts": [
+      {
+        "shape": "sphere",
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.48,
+          0.38,
+          0.65
+        ],
+        "color": "#D99A35"
+      },
+      {
+        "shape": "sphere",
+        "position": [
+          0,
+          0.24,
+          0.23
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.33,
+          0.32,
+          0.34
+        ],
+        "color": "#F2BD57"
+      },
+      {
+        "shape": "cone",
+        "position": [
+          0,
+          0.23,
+          0.48
+        ],
+        "rotation": [
+          1.5708,
+          0,
+          0
+        ],
+        "scale": [
+          0.16,
+          0.28,
+          0.16
+        ],
+        "color": "#E97536"
+      },
+      {
+        "shape": "sphere",
+        "position": [
+          -0.145,
+          0.29,
+          0.3
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.08,
+          0.09,
+          0.08
+        ],
+        "color": "#273842"
+      },
+      {
+        "shape": "sphere",
+        "position": [
+          0.145,
+          0.29,
+          0.3
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.08,
+          0.09,
+          0.08
+        ],
+        "color": "#273842"
+      },
+      {
+        "shape": "box",
+        "position": [
+          -0.4,
+          0.04,
+          -0.04
+        ],
+        "rotation": [
+          0,
+          -0.2,
+          -0.2
+        ],
+        "scale": [
+          0.55,
+          0.055,
+          0.3
+        ],
+        "color": "#448F95"
+      },
+      {
+        "shape": "box",
+        "position": [
+          0.4,
+          0.04,
+          -0.04
+        ],
+        "rotation": [
+          0,
+          0.2,
+          0.2
+        ],
+        "scale": [
+          0.55,
+          0.055,
+          0.3
+        ],
+        "color": "#448F95"
+      },
+      {
+        "shape": "cylinder",
+        "position": [
+          -0.22,
+          0.04,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          1.5708
+        ],
+        "scale": [
+          0.14,
+          0.09,
+          0.14
+        ],
+        "color": "#6E5140"
+      },
+      {
+        "shape": "cylinder",
+        "position": [
+          0.22,
+          0.04,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          1.5708
+        ],
+        "scale": [
+          0.14,
+          0.09,
+          0.14
+        ],
+        "color": "#6E5140"
+      },
+      {
+        "shape": "box",
+        "position": [
+          0,
+          0.04,
+          -0.4
+        ],
+        "rotation": [
+          -0.2,
+          0,
+          0
+        ],
+        "scale": [
+          0.3,
+          0.055,
+          0.32
+        ],
+        "color": "#448F95"
+      },
+      {
+        "shape": "cylinder",
+        "position": [
+          0,
+          -0.25,
+          0.1
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.06,
+          0.22,
+          0.06
+        ],
+        "color": "#6E5140"
+      },
+      {
+        "shape": "torus",
+        "position": [
+          0,
+          -0.37,
+          0.12
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.19,
+          0.19,
+          0.06
+        ],
+        "color": "#E97536"
+      }
+    ],
+    "phases": [
+      {
+        "label": "Find something shiny",
+        "actions": [
+          {
+            "op": "seek",
+            "target": "key",
+            "vector": [
+              0,
+              0,
+              0
+            ],
+            "strength": 5,
+            "radius": 1
+          }
+        ],
+        "until": {
+          "kind": "near",
+          "target": "key",
+          "value": 0.65
+        }
+      },
+      {
+        "label": "Snatch the key",
+        "actions": [
+          {
+            "op": "seek",
+            "target": "key",
+            "vector": [
+              0,
+              0,
+              0
+            ],
+            "strength": 5,
+            "radius": 1
+          },
+          {
+            "op": "grab",
+            "target": "key",
+            "vector": [
+              0,
+              0,
+              0
+            ],
+            "strength": 0,
+            "radius": 0.9
+          }
+        ],
+        "until": {
+          "kind": "hasKey",
+          "target": "self",
+          "value": 0
+        }
+      },
+      {
+        "label": "Return to your human",
+        "actions": [
+          {
+            "op": "seek",
+            "target": "player",
+            "vector": [
+              0,
+              0.4,
+              0
+            ],
+            "strength": 6,
+            "radius": 1
+          }
+        ],
+        "until": {
+          "kind": "near",
+          "target": "player",
+          "value": 1
+        }
+      },
+      {
+        "label": "Drop the shiny gift",
+        "actions": [
+          {
+            "op": "seek",
+            "target": "player",
+            "vector": [
+              0,
+              0.4,
+              0
+            ],
+            "strength": 6,
+            "radius": 1
+          },
+          {
+            "op": "deliver",
+            "target": "player",
+            "vector": [
+              0,
+              0,
+              0
+            ],
+            "strength": 0,
+            "radius": 1.5
+          }
+        ],
+        "until": {
+          "kind": "time",
+          "target": "self",
+          "value": 0.3
+        }
+      }
+    ]
+  },
+  "elapsedMs": 20502,
+  "model": "gpt-6-astra"
+}

@@ -1,0 +1,173 @@
+{
+  "prompt": "An invisibility cloak so I can sneak right past the guard",
+  "invention": {
+    "name": "Invisibility Cloak",
+    "description": "A midnight-blue cloak hides you from the guard while active, letting you sneak close and take the gate key.",
+    "usage": "Press F to hide. Walk close to the guard to take the key, then walk through the gate. Press F again to uncloak.",
+    "limitations": [
+      "The cloak does not unlock the gate; you still need to take the key.",
+      "It does not remove walls or move you automatically.",
+      "Stopping the cloak makes you visible to the guard again."
+    ],
+    "mount": "player",
+    "spawn": [
+      0,
+      0,
+      0
+    ],
+    "parts": [
+      {
+        "shape": "box",
+        "position": [
+          -0.32,
+          0.32,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.12,
+          0.3,
+          0.7
+        ],
+        "color": "#202447",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "box",
+        "position": [
+          -0.4,
+          -0.12,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          -0.08
+        ],
+        "scale": [
+          0.1,
+          0.8,
+          0.42
+        ],
+        "color": "#141831",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "box",
+        "position": [
+          -0.38,
+          -0.14,
+          -0.29
+        ],
+        "rotation": [
+          -0.1,
+          0,
+          -0.08
+        ],
+        "scale": [
+          0.1,
+          0.84,
+          0.23
+        ],
+        "color": "#252951",
+        "animation": "flapZ",
+        "solid": false
+      },
+      {
+        "shape": "box",
+        "position": [
+          -0.38,
+          -0.14,
+          0.29
+        ],
+        "rotation": [
+          0.1,
+          0,
+          -0.08
+        ],
+        "scale": [
+          0.1,
+          0.84,
+          0.23
+        ],
+        "color": "#252951",
+        "animation": "flapZ",
+        "solid": false
+      },
+      {
+        "shape": "box",
+        "position": [
+          -0.44,
+          -0.54,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.11,
+          0.06,
+          0.82
+        ],
+        "color": "#8885BE",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "sphere",
+        "position": [
+          -0.24,
+          0.4,
+          0.34
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.12,
+          0.12,
+          0.12
+        ],
+        "color": "#B9E8ED",
+        "animation": "none",
+        "solid": false
+      }
+    ],
+    "phases": [
+      {
+        "label": "Hidden from the guard",
+        "actions": [
+          {
+            "op": "cloak",
+            "target": "player",
+            "vector": [
+              0,
+              0,
+              0
+            ],
+            "strength": 0,
+            "radius": 1
+          }
+        ],
+        "until": {
+          "kind": "never",
+          "target": "player",
+          "value": 0
+        }
+      }
+    ]
+  },
+  "elapsedMs": 9601,
+  "model": "gpt-6-astra",
+  "serviceTier": "fast"
+}

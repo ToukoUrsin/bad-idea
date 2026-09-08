@@ -1,0 +1,207 @@
+{
+  "name": "rpg",
+  "level": 0,
+  "effort": "low",
+  "elapsedMs": 27152,
+  "usage": {
+    "input_tokens": 14981,
+    "input_tokens_details": {
+      "cache_write_tokens": 14978,
+      "cached_tokens": 0
+    },
+    "output_tokens": 2408,
+    "output_tokens_details": {
+      "reasoning_tokens": 49
+    },
+    "total_tokens": 17389
+  },
+  "invention": {
+    "code": "const {THREE:T,RAPIER:R,sim,world,root,view}=game;\nconst rockets=[],fx=[];let cooldown=0,kick=0,serial=0;\nconst sphere=new T.SphereGeometry(1,12,8),bodyGeo=new T.CylinderGeometry(.065,.065,.52,10),noseGeo=new T.ConeGeometry(.085,.22,10);\nconst metal=new T.MeshStandardMaterial({color:0x687b39,metalness:.6,roughness:.35});\nfunction puff(p,color,size,life,velocity){const m=new T.Mesh(sphere,new T.MeshBasicMaterial({color,transparent:true,opacity:1,depthWrite:false}));m.position.copy(p);m.scale.setScalar(size);root.add(m);fx.push({m,life,total:life,size,v:velocity||new T.Vector3()});}\nfunction distanceBox(p,e){const c=e.id==='guard'?{x:sim.guard.x,y:sim.guard.y+.9,z:sim.guard.z}:e.position;return Math.hypot(Math.max(0,Math.abs(p.x-c.x)-e.half.x),Math.max(0,Math.abs(p.y-c.y)-e.half.y),Math.max(0,Math.abs(p.z-c.z)-e.half.z));}\nfunction explode(p){const radius=1.25;let broken=0;for(const e of game.entities){if(e.removed||['ground','near-bank','far-bank','rooftop'].includes(e.id))continue;if(distanceBox(p,e)<=radius){game.removeEntity(e);broken++;}}\n const delta=new T.Vector3().copy(sim.position).sub(p),d=delta.length();if(d<3.5){delta.normalize().multiplyScalar((1-d/3.5)*7);delta.y+=2*(1-d/3.5);sim.player.applyImpulse(delta,true);}\n puff(p,0xffbf38,.2,.32);puff(p,0xff5015,.15,.48);\n for(let j=0;j<22;j++){const v=new T.Vector3(Math.random()-.5,Math.random()*.9,Math.random()-.5).normalize().multiplyScalar(2+Math.random()*4);puff(p,j%3?0x6b6b62:0xffd36a,.06+Math.random()*.09,.65+Math.random()*.4,v);}\n kick=Math.max(kick,.04);game.sound(70,.32,.13,23);game.say(broken?'Impact! Masonry and metal give way.':'Impact! Keep clear of the blast.');}\nfunction removeRocket(i){rockets[i].mesh.removeFromParent();rockets.splice(i,1);}\nreturn {use(){if(cooldown>0){game.say('Reloading…');return;}cooldown=.65;kick=.13;const d=new T.Vector3(sim.aim.x,sim.aim.y,sim.aim.z).normalize();if(d.lengthSq()<.5)d.set(1,0,0);\n const eye=new T.Vector3(sim.position.x,sim.position.y+.86,sim.position.z);const p=eye.clone().addScaledVector(d,.18);\n const mesh=new T.Group();mesh.name='Flying RPG rocket '+(++serial);const b=new T.Mesh(bodyGeo,metal),n=new T.Mesh(noseGeo,metal);n.position.y=.35;mesh.add(b,n);mesh.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),d);mesh.position.copy(p);root.add(mesh);rockets.push({mesh,p,d,age:0,trail:0});puff(p,0xffe59a,.14,.1);game.sound(190,.16,.12,45);game.say('WHOOSH! Rocket away.');},\n step(dt){cooldown=Math.max(0,cooldown-dt);kick*=Math.exp(-15*dt);\n for(let i=rockets.length-1;i>=0;i--){const r=rockets[i];r.age+=dt;const travel=22*dt;const hit=world.castRay(new R.Ray(r.p,r.d),travel,true,undefined,undefined,undefined,sim.player);let dist=hit?hit.timeOfImpact:Infinity;\n if(sim.guardEnabled){const box=new T.Box3(new T.Vector3(sim.guard.x-.4,sim.guard.y,sim.guard.z-.4),new T.Vector3(sim.guard.x+.4,sim.guard.y+1.8,sim.guard.z+.4));const point=new T.Ray(r.p,r.d).intersectBox(box,new T.Vector3());if(point){const t=point.distanceTo(r.p);if(t<=travel)dist=Math.min(dist,t);}}\n if(dist<=travel){r.p.addScaledVector(r.d,dist);explode(r.p);removeRocket(i);continue;}r.p.addScaledVector(r.d,travel);r.mesh.position.copy(r.p);r.trail+=dt;if(r.trail>=.035){r.trail=0;puff(r.p.clone().addScaledVector(r.d,-.3),0x98978b,.075,.5);puff(r.p.clone().addScaledVector(r.d,-.28),0xffae32,.07,.09);}if(r.age>4)removeRocket(i);}\n for(let i=fx.length-1;i>=0;i--){const f=fx[i];f.life-=dt;if(f.life<=0){f.m.removeFromParent();f.m.material.dispose();fx.splice(i,1);continue;}f.m.position.addScaledVector(f.v,dt);f.v.y-=dt*2;const t=1-f.life/f.total;f.m.scale.setScalar(f.size*(1+4*t));f.m.material.opacity=(1-t)*.85;}\n },render(){const d=new T.Vector3(sim.aim.x,sim.aim.y,sim.aim.z).normalize();view.invention.quaternion.setFromUnitVectors(new T.Vector3(1,0,0),d);view.invention.position.set(sim.position.x,sim.position.y,sim.position.z).addScaledVector(d,-kick);},dispose(){for(const r of rockets)r.mesh.removeFromParent();for(const f of fx){f.m.removeFromParent();f.m.material.dispose();}rockets.length=0;fx.length=0;sphere.dispose();bodyGeo.dispose();noseGeo.dispose();metal.dispose();}};",
+    "test": "const {sim,THREE:T}=game;const gate=game.entities.find(e=>e.id==='gate');assert(!!gate,'Courtyard gate exists');sim.player.setTranslation({x:-6,y:.85,z:0},true);sim.player.setLinvel({x:0,y:0,z:0},true);sim.manual={x:0,y:0,z:0};advance(2);function aim(e){const p=sim.position;const d=new T.Vector3(e.position.x-p.x,e.position.y-(p.y+.86),e.position.z-p.z).normalize();sim.aim={x:d.x,y:d.y,z:d.z};}aim(gate);const handle=gate.collider.handle;behavior.use();behavior.use();assert(game.root.children.filter(o=>o.name.startsWith('Flying RPG rocket')).length===1,'Cooldown prevents duplicate launch');advance(3);assert(!gate.removed,'Rocket must travel before destroying gate');const rocket=game.root.children.find(o=>o.name.startsWith('Flying RPG rocket'));assert(rocket&&rocket.position.x>-5.5,'Visible rocket flies forward');advance(32);assert(gate.removed&&!game.world.getCollider(handle),'Impact removes actual gate collider');const wall=game.entities.find(e=>e.id==='wall-right');assert(!wall.removed,'Distant wall survives gate blast');advance(10);aim(wall);behavior.use();assert(game.root.children.some(o=>o.name.startsWith('Flying RPG rocket')),'Launcher fires again after reload');advance(42);assert(wall.removed,'Second rocket blasts open a prison wall');",
+    "name": "Bad Decision RPG",
+    "description": "A shoulder launcher with fast, visible rockets, smoky exhaust, punchy firing feedback, and impact blasts that tear out nearby prison walls and gate sections.",
+    "usage": "Aim at the gate or a wall and press F/click. Fire again after the short reload. Stand back from impacts, then walk through the breach.",
+    "limitations": [
+      "Reload takes 0.65 seconds between shots.",
+      "Close explosions can throw you backward.",
+      "Blasts demolish nearby structural sections; foundation ground and the rooftop platform remain intact."
+    ],
+    "mount": "player",
+    "spawn": [
+      0,
+      0,
+      0
+    ],
+    "parts": [
+      {
+        "shape": "cylinder",
+        "position": [
+          0.1,
+          0.2,
+          0.4
+        ],
+        "rotation": [
+          0,
+          0,
+          1.5708
+        ],
+        "scale": [
+          0.25,
+          1.5,
+          0.25
+        ],
+        "color": "#53613c",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "cylinder",
+        "position": [
+          -0.68,
+          0.2,
+          0.4
+        ],
+        "rotation": [
+          0,
+          0,
+          1.5708
+        ],
+        "scale": [
+          0.36,
+          0.18,
+          0.36
+        ],
+        "color": "#333b36",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "torus",
+        "position": [
+          0.88,
+          0.2,
+          0.4
+        ],
+        "rotation": [
+          0,
+          1.5708,
+          0
+        ],
+        "scale": [
+          0.27,
+          0.27,
+          0.1
+        ],
+        "color": "#252b28",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "cone",
+        "position": [
+          1.05,
+          0.2,
+          0.4
+        ],
+        "rotation": [
+          0,
+          0,
+          -1.5708
+        ],
+        "scale": [
+          0.23,
+          0.38,
+          0.23
+        ],
+        "color": "#9b9c4b",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "box",
+        "position": [
+          0.13,
+          -0.08,
+          0.4
+        ],
+        "rotation": [
+          0,
+          0,
+          -0.2
+        ],
+        "scale": [
+          0.15,
+          0.4,
+          0.14
+        ],
+        "color": "#624631",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "box",
+        "position": [
+          0.51,
+          -0.03,
+          0.4
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.25,
+          0.15,
+          0.19
+        ],
+        "color": "#806444",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "box",
+        "position": [
+          0.2,
+          0.41,
+          0.4
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.09,
+          0.2,
+          0.06
+        ],
+        "color": "#252b28",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "box",
+        "position": [
+          -0.4,
+          0.18,
+          0.4
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.3,
+          0.31,
+          0.3
+        ],
+        "color": "#796442",
+        "animation": "none",
+        "solid": false
+      }
+    ],
+    "phases": []
+  }
+}

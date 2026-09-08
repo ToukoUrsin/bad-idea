@@ -1,0 +1,236 @@
+{
+  "prompt": "A tall wooden ladder I can climb to get over the prison wall",
+  "invention": {
+    "name": "Wall-Climber Wooden Ladder",
+    "description": "A tall wooden ladder lets you climb above the prison wall and walk off the top.",
+    "usage": "Press F to deploy. Walk to the ladder beside the gate and hold forward toward the wall to climb and step over.",
+    "limitations": [
+      "You must reach the ladder and keep moving toward the wall to climb.",
+      "The ladder does not hide you from the guard or unlock the gate.",
+      "Climbing stops if you press F again; steer toward the exit after crossing the wall."
+    ],
+    "mount": "free",
+    "spawn": [
+      3.25,
+      0,
+      2.7
+    ],
+    "parts": [
+      {
+        "shape": "box",
+        "position": [
+          -0.125,
+          1.25,
+          -0.43
+        ],
+        "rotation": [
+          0,
+          0,
+          -0.0997
+        ],
+        "scale": [
+          0.14,
+          2.52,
+          0.14
+        ],
+        "color": "#80502D",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "box",
+        "position": [
+          0.125,
+          3.75,
+          -0.43
+        ],
+        "rotation": [
+          0,
+          0,
+          -0.0997
+        ],
+        "scale": [
+          0.14,
+          2.52,
+          0.14
+        ],
+        "color": "#80502D",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "box",
+        "position": [
+          -0.125,
+          1.25,
+          0.43
+        ],
+        "rotation": [
+          0,
+          0,
+          -0.0997
+        ],
+        "scale": [
+          0.14,
+          2.52,
+          0.14
+        ],
+        "color": "#80502D",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "box",
+        "position": [
+          0.125,
+          3.75,
+          0.43
+        ],
+        "rotation": [
+          0,
+          0,
+          -0.0997
+        ],
+        "scale": [
+          0.14,
+          2.52,
+          0.14
+        ],
+        "color": "#80502D",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "box",
+        "position": [
+          -0.19,
+          0.6,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.18,
+          0.12,
+          0.96
+        ],
+        "color": "#BC8A50",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "box",
+        "position": [
+          -0.1,
+          1.5,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.18,
+          0.12,
+          0.96
+        ],
+        "color": "#BC8A50",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "box",
+        "position": [
+          -0.01,
+          2.4,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.18,
+          0.12,
+          0.96
+        ],
+        "color": "#BC8A50",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "box",
+        "position": [
+          0.08,
+          3.3,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.18,
+          0.12,
+          0.96
+        ],
+        "color": "#BC8A50",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "box",
+        "position": [
+          0.17,
+          4.2,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.18,
+          0.12,
+          0.96
+        ],
+        "color": "#BC8A50",
+        "animation": "none",
+        "solid": false
+      }
+    ],
+    "phases": [
+      {
+        "label": "Climb the anchored ladder",
+        "actions": [
+          {
+            "op": "climb",
+            "target": "player",
+            "vector": [
+              0,
+              5.15,
+              0
+            ],
+            "strength": 2.8,
+            "radius": 1.1
+          }
+        ],
+        "until": {
+          "kind": "never",
+          "target": "player",
+          "value": 0
+        }
+      }
+    ]
+  },
+  "elapsedMs": 13819,
+  "model": "gpt-6-astra",
+  "serviceTier": "fast"
+}

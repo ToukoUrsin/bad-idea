@@ -1,0 +1,3 @@
+import fs from 'node:fs/promises';
+for(const [name,prompt] of [['bird',"A little mechanical bird that steals the guard's key and brings it to me"],['skates','Rocket-powered roller skates with a parachute that opens when I start falling'],['bubble','A wearable freeze bubble that freezes the guard when I get near so I can take his key']]){
+const res=await fetch('http://localhost:4320/api/invent',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({prompt})});const data=await res.json();await fs.writeFile(`runtime/${name}.json`,JSON.stringify(data,null,2));console.log(JSON.stringify({name,status:res.status,error:data.error,title:data.invention?.name,elapsedMs:data.elapsedMs}));}

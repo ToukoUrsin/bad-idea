@@ -1,0 +1,194 @@
+{
+  "prompt": "A handheld ice ray. Freeze the guard only when I aim at him and fire.",
+  "invention": {
+    "name": "Handheld Ice Ray",
+    "description": "A handheld ice ray briefly freezes the guard only when fired on aim within five meters and clear sight.",
+    "usage": "Aim at the guard within 5m and press F to fire. After the shot ends, press F again to refire.",
+    "limitations": [
+      "Requires aim, clear line of sight, and a guard within 5m.",
+      "Freezes the guard for 3 seconds; it does not freeze an area.",
+      "You must collect the key and reach the gate yourself."
+    ],
+    "mount": "player",
+    "spawn": [
+      0,
+      0,
+      0
+    ],
+    "parts": [
+      {
+        "shape": "box",
+        "position": [
+          0.35,
+          0.3,
+          0.35
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.36,
+          0.18,
+          0.18
+        ],
+        "color": "#47758A",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "cylinder",
+        "position": [
+          0.62,
+          0.3,
+          0.35
+        ],
+        "rotation": [
+          0,
+          0,
+          1.5708
+        ],
+        "scale": [
+          0.12,
+          0.25,
+          0.12
+        ],
+        "color": "#A9DDEA",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "torus",
+        "position": [
+          0.75,
+          0.3,
+          0.35
+        ],
+        "rotation": [
+          0,
+          1.5708,
+          0
+        ],
+        "scale": [
+          0.17,
+          0.17,
+          0.045
+        ],
+        "color": "#D9F8FF",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "sphere",
+        "position": [
+          0.75,
+          0.3,
+          0.35
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.055,
+          0.1,
+          0.1
+        ],
+        "color": "#48DFFF",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "box",
+        "position": [
+          0.25,
+          0.15,
+          0.35
+        ],
+        "rotation": [
+          0,
+          0,
+          -0.2
+        ],
+        "scale": [
+          0.1,
+          0.23,
+          0.12
+        ],
+        "color": "#243B50",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "cylinder",
+        "position": [
+          0.34,
+          0.44,
+          0.35
+        ],
+        "rotation": [
+          0,
+          0,
+          1.5708
+        ],
+        "scale": [
+          0.11,
+          0.23,
+          0.11
+        ],
+        "color": "#62D9F2",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "box",
+        "position": [
+          0.53,
+          0.41,
+          0.35
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.045,
+          0.055,
+          0.035
+        ],
+        "color": "#16334A",
+        "animation": "none",
+        "solid": false
+      }
+    ],
+    "phases": [
+      {
+        "label": "Aimed frost shot",
+        "actions": [
+          {
+            "op": "freezeRay",
+            "target": "guard",
+            "vector": [
+              0,
+              0,
+              0
+            ],
+            "strength": 3,
+            "radius": 5
+          }
+        ],
+        "until": {
+          "kind": "time",
+          "target": "self",
+          "value": 0.12
+        }
+      }
+    ]
+  },
+  "elapsedMs": 10118,
+  "model": "gpt-6-astra",
+  "serviceTier": "fast"
+}

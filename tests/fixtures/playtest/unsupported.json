@@ -1,0 +1,182 @@
+{
+  "prompt": "A potion that turns me into a mouse small enough to squeeze between the locked gate bars. Do not give me invisibility or teleportation.",
+  "invention": {
+    "name": "Mouse Potion — Cosmetic Prototype",
+    "description": "A mouse-themed potion bottle; actual transformation, shrinking, and passage through gate bars are unsupported.",
+    "usage": "Press F to activate the cosmetic potion; it cannot shrink you or let you pass the locked gate.",
+    "limitations": [
+      "The engine cannot transform the player into a mouse or shrink the player's collision capsule.",
+      "The locked gate cannot be squeezed through with this potion.",
+      "This prototype has no gameplay effect and provides neither invisibility nor teleportation."
+    ],
+    "mount": "player",
+    "spawn": [
+      0,
+      0,
+      0
+    ],
+    "parts": [
+      {
+        "shape": "sphere",
+        "position": [
+          0.35,
+          0.22,
+          0.35
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.22,
+          0.27,
+          0.22
+        ],
+        "color": "#9567C9",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "cylinder",
+        "position": [
+          0.35,
+          0.39,
+          0.35
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.09,
+          0.12,
+          0.09
+        ],
+        "color": "#C4AADF",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "cylinder",
+        "position": [
+          0.35,
+          0.46,
+          0.35
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.1,
+          0.05,
+          0.1
+        ],
+        "color": "#997047",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "sphere",
+        "position": [
+          0.245,
+          0.25,
+          0.35
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.035,
+          0.1,
+          0.09
+        ],
+        "color": "#D8D8DE",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "sphere",
+        "position": [
+          0.25,
+          0.305,
+          0.305
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.035,
+          0.065,
+          0.06
+        ],
+        "color": "#E8A8B8",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "sphere",
+        "position": [
+          0.25,
+          0.305,
+          0.395
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.035,
+          0.065,
+          0.06
+        ],
+        "color": "#E8A8B8",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "sphere",
+        "position": [
+          0.222,
+          0.235,
+          0.35
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.03,
+          0.03,
+          0.03
+        ],
+        "color": "#EB91A6",
+        "animation": "none",
+        "solid": false
+      }
+    ],
+    "phases": [
+      {
+        "label": "Cosmetic only — transformation unavailable",
+        "actions": [],
+        "until": {
+          "kind": "time",
+          "target": "self",
+          "value": 0.12
+        }
+      }
+    ]
+  },
+  "elapsedMs": 9873,
+  "model": "gpt-6-astra",
+  "serviceTier": "fast"
+}

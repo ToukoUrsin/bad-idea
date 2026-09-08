@@ -1,0 +1,154 @@
+{
+  "invention": {
+    "code": "const {THREE,RAPIER,world,root}=game;\nconst near=game.entities.find(e=>e.id==='near-bank'&&!e.removed);\nconst far=game.entities.find(e=>e.id==='far-bank'&&!e.removed);\nconst sections=[];\nlet extended=false,length=0,time=0,disposed=false;\nconst start=near?near.position.x+near.half.x-.3:0;\nconst end=far?far.position.x-far.half.x+.3:0;\nconst span=Math.max(0,end-start),count=Math.ceil(span/.23),unit=count?span/count:1;\nconst top=near?near.position.y+near.half.y:0;\nconst z=near&&far?(near.position.z+far.position.z)/2:0;\nconst speed=1.8;\nconst vineMaterial=new THREE.MeshStandardMaterial({color:'#38733a',roughness:.95});\nconst leafMaterial=new THREE.MeshStandardMaterial({color:'#8ec64b',roughness:.8});\nconst vineGeometry=new THREE.CylinderGeometry(.5,.5,1,10);\nconst leafGeometry=new THREE.SphereGeometry(.5,10,6);\nfunction mesh(geometry,material,parent,position,scale){const m=new THREE.Mesh(geometry,material);m.position.fromArray(position);m.scale.fromArray(scale);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m;}\nfor(let i=0;i<count;i++){\n const group=new THREE.Group();group.name='vine-section';group.position.set(start+i*unit,top,z);group.visible=false;root.add(group);\n for(let j=0;j<9;j++){\n  const stem=mesh(vineGeometry,vineMaterial,group,[unit/2,-.12,-.88+j*.22],[.24,unit+.03,.24]);stem.rotation.z=Math.PI/2;\n }\n const leaves=[];\n for(const side of [-1,1]){\n  const leaf=mesh(leafGeometry,leafMaterial,group,[unit*.6,.025,side*1.09],[0,0,0]);leaf.name='vine-leaf';leaf.rotation.y=side*.6;leaves.push(leaf);\n }\n sections.push({group,leaves,body:null,collider:null,index:i});\n}\nfunction removeSupport(s){if(s.body&&s.body.isValid())world.removeRigidBody(s.body);s.body=null;s.collider=null;}\nfunction update(){\n for(const s of sections){\n  const amount=THREE.MathUtils.clamp((length-s.index*unit)/unit,0,1);\n  s.group.visible=amount>0;s.group.scale.x=Math.max(.001,amount);\n  if(amount>=.999&&!s.body){\n   // Overlap adjacent supports: a ray or foot at a segment seam must never find a floating-point crack.\n   s.body=world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(start+(s.index+.5)*unit,top-.12,z));\n   s.collider=world.createCollider(RAPIER.ColliderDesc.cuboid(unit/2+.015,.12,1).setFriction(.9).setRestitution(0),s.body);\n  }\n  if(amount<.999&&s.body)removeSupport(s);\n  const bloom=THREE.MathUtils.clamp((amount-.35)/.65,0,1);\n  for(const leaf of s.leaves){leaf.scale.set(.43*bloom,.055*bloom,.64*bloom);leaf.rotation.z=Math.sin(time*2+s.index*.7)*.12;}\n }\n}\nreturn {\n use(){\n  if(disposed)return;\n  if(!near||!far||span<=0){game.say('The vine needs the banks of the broken crossing.');return;}\n  extended=!extended;\n  game.say(extended?'The vines unfurl toward the far bank. Follow the leafy path!':'The vines are withdrawing from the far bank. Stay on solid ground!');\n  game.sound(extended?240:360,.3,.07,extended?480:130);\n },\n step(dt){if(disposed)return;time+=dt;length=THREE.MathUtils.clamp(length+(extended?1:-1)*speed*dt,0,span);update();},\n dispose(){if(disposed)return;disposed=true;for(const s of sections){removeSupport(s);s.group.removeFromParent();}vineGeometry.dispose();leafGeometry.dispose();vineMaterial.dispose();leafMaterial.dispose();}\n};",
+    "test": "const {sim,world,RAPIER}=game;\nconst near=game.entities.find(e=>e.id==='near-bank'),far=game.entities.find(e=>e.id==='far-bank');\nassert(near&&far,'The broken crossing has two banks');\nconst edge=near.position.x+near.half.x,other=far.position.x-far.half.x;\nconst top=near.position.y+near.half.y,z=(near.position.z+far.position.z)/2,mid=(edge+other)/2;\nconst span=other-edge+.6,fullFrames=Math.ceil(span/1.8*60)+12;\nsim.manual={x:0,y:0,z:0};sim.aim={x:1,y:0,z:0};\nsim.player.setTranslation({x:edge-1,y:top+.85,z},true);sim.player.setLinvel({x:0,y:0,z:0},true);\nadvance(2);\nfunction support(x=mid){return world.castRay(new RAPIER.Ray({x,y:top+.5,z},{x:0,y:-1,z:0}),1,true,undefined,undefined,undefined,sim.player);}\nassert(!support(),'The middle of the gap initially has no support');\nbehavior.use();advance(10);\nassert(!support(),'The bridge grows progressively rather than appearing instantly');\nadvance(fullFrames);\nfor(const x of [edge+.1,mid-.01,mid,mid+.01,other-.1])assert(!!support(x),'The grown bridge has continuous physical support, including its middle seam');\nlet leaves=0;game.root.traverse(o=>{if(o.name==='vine-leaf'&&o.parent.visible&&o.scale.z>.5)leaves++;});\nassert(leaves>=10,'Leaves visibly sprout along the grown bridge');\nsim.manual={x:2,y:0,z:0};advance(Math.round((mid-(edge-1))/2*60));\nsim.manual={x:0,y:0,z:0};advance(30);\nassert(sim.position.x>edge+.4&&sim.position.x<other-.4,'The player walks into the gap');\nassert(sim.position.y>top+.68&&sim.position.y<top+.85&&Math.abs(sim.player.linvel().y)<.2,'The bridge physically supports the stationary player over the void');\nsim.manual={x:2,y:0,z:0};advance(Math.ceil((other+.9-sim.position.x)/2*60));\nsim.manual={x:0,y:0,z:0};advance(25);\nassert(sim.position.x>other+.4&&sim.position.y>top+.68,'The player walks across onto the far bank');\nbehavior.use();advance(10);\nassert(!!support(),'Retraction travels back from the tip rather than deleting the entire bridge instantly');\nadvance(fullFrames);\nassert(!support(),'Retraction removes support over the void');\nassert(game.root.children.filter(o=>o.name==='vine-section').every(o=>!o.visible),'The retracted vines and leaves disappear');\nbehavior.use();advance(fullFrames);\nassert(!!support(),'The bridge can regrow with physical support after retracting');",
+    "name": "Living Vine Bridge",
+    "description": "Living vines weave a solid bridge across the broken crossing, sprouting gently swaying leaves as they grow. Press again to draw them back.",
+    "usage": "Press F to grow the bridge. Wait for the vines to reach the far bank, then walk across. Press F again to retract; another press reverses their direction.",
+    "limitations": [
+      "Growth takes about three seconds; unfinished tips are not yet load-bearing.",
+      "Retraction removes support from the far end first. Reach a bank before retracting.",
+      "The leafy path has no guardrails."
+    ],
+    "mount": "player",
+    "spawn": [
+      0,
+      0,
+      0
+    ],
+    "parts": [
+      {
+        "shape": "sphere",
+        "position": [
+          0.3,
+          -0.35,
+          0.42
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.28,
+          0.23,
+          0.23
+        ],
+        "color": "#69513a",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "cylinder",
+        "position": [
+          0.37,
+          -0.21,
+          0.42
+        ],
+        "rotation": [
+          0,
+          0,
+          -0.35
+        ],
+        "scale": [
+          0.07,
+          0.28,
+          0.07
+        ],
+        "color": "#38733a",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "torus",
+        "position": [
+          0.45,
+          -0.11,
+          0.42
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.21,
+          0.21,
+          0.08
+        ],
+        "color": "#4d8a3f",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "sphere",
+        "position": [
+          0.33,
+          -0.15,
+          0.32
+        ],
+        "rotation": [
+          0.3,
+          0.4,
+          -0.5
+        ],
+        "scale": [
+          0.22,
+          0.045,
+          0.13
+        ],
+        "color": "#81bb45",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "sphere",
+        "position": [
+          0.49,
+          -0.05,
+          0.5
+        ],
+        "rotation": [
+          0,
+          -0.5,
+          0.5
+        ],
+        "scale": [
+          0.24,
+          0.045,
+          0.13
+        ],
+        "color": "#a0ce58",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "sphere",
+        "position": [
+          0.45,
+          0.01,
+          0.42
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.08,
+          0.12,
+          0.08
+        ],
+        "color": "#d7df81",
+        "animation": "none",
+        "solid": false
+      }
+    ],
+    "phases": []
+  },
+  "artifactId": "mtt5dohv",
+  "elapsedMs": 29227,
+  "model": "gpt-6-astra",
+  "reasoningEffort": "medium",
+  "serviceTier": "fast"
+}

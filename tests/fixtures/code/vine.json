@@ -1,0 +1,174 @@
+{
+  "invention": {
+    "code": "const {THREE,RAPIER,sim,world,root}=game;\nconst near=game.entities.find(e=>e.id==='near-bank'&&!e.removed);\nconst far=game.entities.find(e=>e.id==='far-bank'&&!e.removed);\nconst garden=new THREE.Group();garden.name='Living vine bridge';root.add(garden);\nconst geometries=[new THREE.CylinderGeometry(1,1,1,8),new THREE.SphereGeometry(1,10,6)];\nconst bark=new THREE.MeshStandardMaterial({color:0x426329,roughness:.95});\nconst young=new THREE.MeshStandardMaterial({color:0x78a83d,roughness:.85});\nconst foliage=new THREE.MeshStandardMaterial({color:0x4caa48,roughness:.8});\nconst materials=[bark,young,foliage];\nlet target=false,extent=0,time=0,disposed=false;\nconst segments=[];\nlet start=0,end=0,y=0,z=0,length=0,unit=0;\nfunction mesh(geometry,material,parent){const m=new THREE.Mesh(geometry,material);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m;}\nif(near&&far){\n start=near.position.x+near.half.x-.5;\n end=far.position.x-far.half.x+.5;\n y=Math.max(near.position.y+near.half.y,far.position.y+far.half.y);\n const lo=Math.max(near.position.z-near.half.z,far.position.z-far.half.z)+1.2;\n const hi=Math.min(near.position.z+near.half.z,far.position.z+far.half.z)-1.2;\n z=THREE.MathUtils.clamp(0,lo,hi);\n length=end-start;\n const count=Math.min(64,Math.max(1,Math.ceil(length/.25)));unit=length/count;\n for(let i=0;i<count;i++){\n  const group=new THREE.Group();group.position.set(start+i*unit,y,z);group.visible=false;garden.add(group);\n  for(let j=0;j<10;j++){\n   const vine=mesh(geometries[0],j%3===0?young:bark,group);\n   vine.position.set(unit/2,-.10,-.99+j*.22);vine.rotation.z=Math.PI/2;vine.scale.set(.115,unit+.006,.115);\n  }\n  const rib=mesh(geometries[0],young,group);rib.rotation.x=Math.PI/2;rib.position.set(unit*.6,-.035,0);rib.scale.set(.04,2.18,.04);\n  const leaves=[];\n  for(const side of [-1,1]){\n   const stem=mesh(geometries[0],young,group);stem.position.set(unit*.65,.06,side*1.10);stem.rotation.x=side*.7;stem.scale.set(.023,.28,.023);\n   const leaf=mesh(geometries[1],foliage,group);leaf.name='Sprouting leaf';leaf.position.set(unit*.65,.17,side*1.27);leaf.rotation.set(side*.3,side*.5,side*.2);leaves.push(leaf);\n  }\n  segments.push({group,leaves,collider:null,f:0,index:i});\n }\n const bulb=mesh(geometries[1],young,garden);bulb.position.set(start-.12,y+.08,z-1.15);bulb.scale.set(.24,.17,.22);\n}\nfunction update(){\n for(const s of segments){\n  const f=THREE.MathUtils.clamp((extent-s.index*unit)/unit,0,1);\n  s.group.visible=f>.001;s.group.scale.x=Math.max(.001,f);\n  if(Math.abs(f-s.f)>.000001){\n   if(f>.001){\n    const center={x:start+s.index*unit+unit*f/2,y:y-.10,z};\n    if(!s.collider){s.collider=world.createCollider(RAPIER.ColliderDesc.cuboid(unit*f/2,.11,1.1).setTranslation(center.x,center.y,center.z).setFriction(.9));}\n    else {s.collider.setShape(new RAPIER.Cuboid(unit*f/2,.11,1.1));s.collider.setTranslation(center);}\n   }else if(s.collider){if(s.collider.isValid())world.removeCollider(s.collider,true);s.collider=null;}\n   s.f=f;\n  }\n  const bloom=THREE.MathUtils.clamp((f-.35)/.65,0,1);\n  for(let k=0;k<s.leaves.length;k++){\n   const leaf=s.leaves[k];leaf.visible=bloom>0;leaf.scale.set(.19*bloom,.045*bloom,.34*bloom);\n   leaf.rotation.x=(k===0?-.3:.3)+Math.sin(time*2+s.index*.6+k)*.09*bloom;\n  }\n }\n}\nreturn {\n use(){\n  if(disposed)return;\n  if(!near||!far||length<=0){game.say('This vine needs the two banks of the broken bridge.');return;}\n  target=!target;\n  game.say(target?'The vines are growing along the marked crossing. Let the green path reach the far bank.':'The vines are curling back! Stay on a bank.');\n  game.sound(target?240:390,.22,.07,target?520:150);\n },\n step(dt){\n  if(disposed)return;time+=dt;\n  const before=extent;extent=THREE.MathUtils.clamp(extent+(target?1:-1)*1.8*dt,0,length);update();\n  if(target&&before<length&&extent===length)game.say('The living bridge is rooted. Walk across; F retracts it.');\n  if(!target&&before>0&&extent===0)game.say('The bridge is curled away. F grows it again.');\n },\n dispose(){\n  if(disposed)return;disposed=true;\n  for(const s of segments)if(s.collider&&s.collider.isValid())world.removeCollider(s.collider,true);\n  garden.removeFromParent();for(const g of geometries)g.dispose();for(const m of materials)m.dispose();\n }\n};",
+    "test": "const {sim,world,RAPIER}=game;\nconst near=game.entities.find(e=>e.id==='near-bank');const far=game.entities.find(e=>e.id==='far-bank');\nassert(!!near&&!!far,'The living bridge test uses the broken bridge banks.');\nconst a=near.position.x+near.half.x,b=far.position.x-far.half.x;\nconst y=Math.max(near.position.y+near.half.y,far.position.y+far.half.y);\nfunction support(x){return world.castRay(new RAPIER.Ray({x,y:y+1,z:0},{x:0,y:-1,z:0}),1.5,true,undefined,undefined,undefined,sim.player);}\nsim.autoRun=false;sim.manual={x:0,y:0,z:0};sim.player.setTranslation({x:a-1,y:y+.8,z:0},true);sim.player.setLinvel({x:0,y:0,z:0},true);sim.aim={x:1,y:0,z:0};advance(2);\nassert(!support((a+b)/2),'The gap starts without physical support.');\nbehavior.use();advance(15);\nassert(!support(b-.3),'Growth travels from the near bank rather than appearing instantly.');\nadvance(210);\nfor(let i=1;i<8;i++)assert(!!support(a+(b-a)*i/8),'Grown vines provide continuous physical support over the void.');\nlet leaves=0;game.root.traverse(o=>{if(o.name==='Sprouting leaf'&&o.visible&&o.scale.z>.2)leaves++;});assert(leaves>=10,'The bridge sprouts visible grown leaves.');\nsim.manual={x:3.2,y:0,z:0};\nfor(let i=0;i<12;i++){advance(10);assert(sim.position.y>y+.6,'The player remains supported while walking across the vine deck.');}\nsim.manual={x:0,y:0,z:0};advance(15);\nassert(sim.position.x>b+.35,'Ordinary walking reaches the far bank without teleportation.');\nbehavior.use();advance(210);\nassert(!support((a+b)/2),'Pressing F again retracts the physical bridge.');\nlet visibleBridge=false;game.root.traverse(o=>{if(o.name==='Sprouting leaf'&&o.parent.visible&&o.visible)visibleBridge=true;});assert(!visibleBridge,'Leaves curl away with the retracted bridge.');\nbehavior.use();advance(210);assert(!!support((a+b)/2),'The living bridge can regrow after retraction.');",
+    "name": "Rootbound Crossing",
+    "description": "A living, woven vine bridge grows from the near bank to the far bank, unfurling leaves as its solid walking surface extends. Press again and it curls back into its roots.",
+    "usage": "Press F to grow the bridge along the marked crossing. Wait until it reaches the far bank, then walk across. Press F again to retract; press during growth to ...",
+    "limitations": [
+      "Growth takes about three seconds; unfinished vines do not support the gap ahead.",
+      "Retraction removes support from the far end first. Get onto a bank before retracting.",
+      "The leafy deck has no guardrails."
+    ],
+    "mount": "player",
+    "spawn": [
+      0,
+      0,
+      0
+    ],
+    "parts": [
+      {
+        "shape": "torus",
+        "position": [
+          0.25,
+          -0.32,
+          0.46
+        ],
+        "rotation": [
+          0,
+          1.5708,
+          0
+        ],
+        "scale": [
+          0.3,
+          0.3,
+          0.12
+        ],
+        "color": "#426329",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "sphere",
+        "position": [
+          0.42,
+          -0.29,
+          0.46
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.32,
+          0.25,
+          0.25
+        ],
+        "color": "#826039",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "cylinder",
+        "position": [
+          0.54,
+          -0.2,
+          0.46
+        ],
+        "rotation": [
+          0,
+          0,
+          -0.6
+        ],
+        "scale": [
+          0.06,
+          0.27,
+          0.06
+        ],
+        "color": "#6e9636",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "sphere",
+        "position": [
+          0.61,
+          -0.12,
+          0.37
+        ],
+        "rotation": [
+          0.3,
+          0.4,
+          -0.4
+        ],
+        "scale": [
+          0.27,
+          0.045,
+          0.15
+        ],
+        "color": "#63af42",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "sphere",
+        "position": [
+          0.58,
+          -0.17,
+          0.58
+        ],
+        "rotation": [
+          -0.3,
+          -0.6,
+          0.3
+        ],
+        "scale": [
+          0.26,
+          0.045,
+          0.16
+        ],
+        "color": "#88c54d",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "torus",
+        "position": [
+          0.43,
+          -0.28,
+          0.46
+        ],
+        "rotation": [
+          0,
+          1.5708,
+          0
+        ],
+        "scale": [
+          0.26,
+          0.24,
+          0.045
+        ],
+        "color": "#92ae46",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "sphere",
+        "position": [
+          0.61,
+          -0.07,
+          0.46
+        ],
+        "rotation": [
+          0,
+          0,
+          -0.4
+        ],
+        "scale": [
+          0.12,
+          0.18,
+          0.12
+        ],
+        "color": "#c9df71",
+        "animation": "none",
+        "solid": false
+      }
+    ],
+    "phases": []
+  },
+  "artifactId": "mtt4tic9",
+  "elapsedMs": 38186,
+  "model": "gpt-6-astra",
+  "serviceTier": "fast"
+}

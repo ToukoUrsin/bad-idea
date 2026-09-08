@@ -1,0 +1,234 @@
+{
+  "invention": {
+    "name": "Wooden Rooftop Ladder",
+    "description": "A tall wooden ladder lets you climb the rooftop edge and walk across to the exit.",
+    "usage": "Press F to deploy. Walk to the ladder and hold forward toward the wall to climb, then walk onto the roof toward the exit.",
+    "limitations": [
+      "You must stand within 1.1m of the ladder and hold movement toward the wall to climb.",
+      "The ladder stays anchored in place; it does not carry you to the exit."
+    ],
+    "mount": "free",
+    "spawn": [
+      3.25,
+      0,
+      2.7
+    ],
+    "parts": [
+      {
+        "shape": "box",
+        "position": [
+          -0.1,
+          1.25,
+          -0.43
+        ],
+        "rotation": [
+          0,
+          0,
+          -0.08
+        ],
+        "scale": [
+          0.14,
+          2.52,
+          0.14
+        ],
+        "color": "#80502C",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "box",
+        "position": [
+          0.1,
+          3.75,
+          -0.43
+        ],
+        "rotation": [
+          0,
+          0,
+          -0.08
+        ],
+        "scale": [
+          0.14,
+          2.52,
+          0.14
+        ],
+        "color": "#80502C",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "box",
+        "position": [
+          -0.1,
+          1.25,
+          0.43
+        ],
+        "rotation": [
+          0,
+          0,
+          -0.08
+        ],
+        "scale": [
+          0.14,
+          2.52,
+          0.14
+        ],
+        "color": "#80502C",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "box",
+        "position": [
+          0.1,
+          3.75,
+          0.43
+        ],
+        "rotation": [
+          0,
+          0,
+          -0.08
+        ],
+        "scale": [
+          0.14,
+          2.52,
+          0.14
+        ],
+        "color": "#80502C",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "box",
+        "position": [
+          -0.156,
+          0.55,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.18,
+          0.12,
+          0.92
+        ],
+        "color": "#BC8A50",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "box",
+        "position": [
+          -0.08,
+          1.5,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.18,
+          0.12,
+          0.92
+        ],
+        "color": "#BC8A50",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "box",
+        "position": [
+          -0.004,
+          2.45,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.18,
+          0.12,
+          0.92
+        ],
+        "color": "#BC8A50",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "box",
+        "position": [
+          0.072,
+          3.4,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.18,
+          0.12,
+          0.92
+        ],
+        "color": "#BC8A50",
+        "animation": "none",
+        "solid": false
+      },
+      {
+        "shape": "box",
+        "position": [
+          0.148,
+          4.35,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.18,
+          0.12,
+          0.92
+        ],
+        "color": "#BC8A50",
+        "animation": "none",
+        "solid": false
+      }
+    ],
+    "phases": [
+      {
+        "label": "Climb toward the rooftop",
+        "actions": [
+          {
+            "op": "climb",
+            "target": "player",
+            "vector": [
+              0,
+              5.15,
+              0
+            ],
+            "strength": 2.8,
+            "radius": 1.1
+          }
+        ],
+        "until": {
+          "kind": "never",
+          "target": "player",
+          "value": 0
+        }
+      }
+    ]
+  },
+  "elapsedMs": 11643,
+  "model": "gpt-6-astra",
+  "serviceTier": "fast"
+}
