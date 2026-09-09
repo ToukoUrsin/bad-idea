@@ -42,16 +42,30 @@ export async function createHosting(server, {port, env = process.env, distDirect
     const directory = distDirectory;
     await fs.access(path.join(directory, 'index.html'));
     const {default: sirv} = await import('sirv');
-    const serve = sirv(directory, {etag: true, maxAge: 0, dotfiles: false});
+    const serve = sirv(directory, {etag: true, maxAge: 0, dotfiles: false, gzip: true, brotli: true});
     middlewares = (req, res) => {
       if (!['GET', 'HEAD'].includes(req.method)) {
         res.writeHead(405, {allow: 'GET, HEAD'});
         return res.end();
       }
-      serve(req, res, () => {
-        res.writeHead(404, {'content-type': 'text/plain; charset=utf-8'});
-        res.end('Not found');
-      });
+      // sirv opens the read stream without checking start <= end, so an inverted Range
+      // throws synchronously; from the async request handler that would be a fatal
+      // unhandled rejection and take the whole instance down. Drop anything unusual.
+      const range = req.headers.range;
+      if (range) {
+        const match = /^bytes=(\d*)-(\d*)$/.exec(range);
+        if (!match || (match[1] && match[2] && Number(match[1]) > Number(match[2]))) delete req.headers.range;
+      }
+      try {
+        serve(req, res, () => {
+          res.writeHead(404, {'content-type': 'text/plain; charset=utf-8'});
+          res.end('Not found');
+        });
+      } catch {
+        // A static-file edge case must never end the process that is serving everyone.
+        if (!res.headersSent) res.writeHead(500, {'content-type': 'text/plain; charset=utf-8'});
+        res.end();
+      }
     };
   } else {
     const {createServer} = await import('vite');

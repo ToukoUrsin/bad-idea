@@ -83,7 +83,7 @@ test('server room normalization removes all early restrictions and preserves lat
  assert.equal(normal.carryAllowed,true);
  assert.deepEqual(normal.inventoryVerdicts,[{key:'jet',allowed:true,reason:''}]);
  assert.equal(early.rule.restriction,'No motors','normalization must not mutate the input');
- const later={...early,round:4};
+ const later={...early,round:6};
  assert.equal(normalizeArenaRules(later),later);
 });
 
@@ -97,7 +97,7 @@ test('director output cannot skip the round gate and repairs preserve language a
  assert.equal(early.objective,previous.objective);
  const fourth=resolveDirectorArena(proposed,{...previous,round:3});
  assert.equal(fourth.round,4);
- assert.deepEqual(fourth.rule.language,bank);
+ assert.deepEqual(fourth.rule.language,{bannedLetters:['e'],bannedWords:[],wordBank:null});
  const repaired=resolveDirectorArena({...proposed,code:'fixed physics'},room(6,noThe),true);
  assert.equal(repaired.round,6);
  assert.equal(repaired.code,'fixed physics');

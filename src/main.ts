@@ -2,6 +2,7 @@ import {CodeRuntime} from './code-runtime';
 import {firstArena,arenaSchema,ruleText,normalizeArenaRules,type Arena} from './arena';
 import {getLanguageRule,languageInventoryVerdict,promptRuleViolation,collectedWordsForRule} from './prompt-rules';
 import {WordPickups} from './word-pickups';
+import {applyInventoryReset} from './inventory-reset';
 import {WordWorkshop} from './word-workshop';
 import {VoiceWorkshop} from './voice-workshop';
 import {readRoomHistory,recordRoomTransition,type RoomMemory} from './room-rhythm';
@@ -32,6 +33,7 @@ let runVersion=0,buildVersion=0;
 let savedSession:ReturnType<typeof snapshotRun>|null=null;
 let voiceReleasePending=false;let voiceEscapeUntil=0;let escapeHandledUntil=0;let inventorySelection=0;let inventoryOpen=false;let inventory:{key:string,item:Invention,prompt?:string}[]=[];
 let collectedWords:string[]=[],wordPickups:WordPickups|null=null;
+let lastInventoryResetRound:number|null=null;
 let workbenchOpen=false;
 let level:LevelId=0;let unlocked=0;try{unlocked=Math.max(0,Math.min(3,Number(localStorage.getItem('badidea-progress'))||0));}catch{}
 let sim:Simulation,view:GameView,preview:InventionPreview,spec:Invention|null=null,draft:Invention|null=null,startingNew=false,busy=false,attempts=1,controller:AbortController|null=null,ready=false,mode:'intro'|'play'|'pause'|'result'='intro',hasStarted=false;
@@ -44,8 +46,9 @@ function collectWord(word:string){
  if(collectedWords.includes(word))return;collectedWords=[...collectedWords,word];saveIdeas();wordWorkshop.refresh();drawInventory();sim.note(`Word unlocked: ${word}. Open Invent to use it.`);sound.tone(660,.12,.06,880);
 }
 function refreshRules(){
- const active=!!arena&&(!!arena.rule.restriction||!!getLanguageRule(arena));
- for(const selector of ['#active-rule','#inventory-rule','#room-rule']){const node=$(selector);node.textContent=active?ruleText(arena!.rule):'';node.classList.toggle('hidden',!active);}
+ const restriction=arena&&(arena.rule.restriction||getLanguageRule(arena))?ruleText(arena.rule):'';
+ const text=[arena?.inventoryReset?'Fresh start: build a new inventory this round.':'',restriction].filter(Boolean).join(' ');
+ for(const selector of ['#active-rule','#inventory-rule','#room-rule']){const node=$(selector);node.textContent=text;node.classList.toggle('hidden',!text);}
  wordWorkshop.refresh();
 }
 function inventionKey(item:Invention|null){if(!item)return 'empty';let h=0;for(const c of JSON.stringify(item))h=(Math.imul(h,31)+c.charCodeAt(0))|0;return String(h);}
@@ -55,7 +58,7 @@ function attachRoom(){if(!arena?.code)return;new CodeRuntime(sim,view,message=>q
 function roundResultInput():RoundResultInput{
  return {won:sim.state==='won',round:arena?.round??null,roomName:arena?.title||levels[level].name,
   reason:sim.reason,roomFailure:!!roomFailure,nextRoom:nextArena?{round:nextArena.round,title:nextArena.title,change:nextArena.change,
-   rule:[nextArena.rule.restriction||getLanguageRule(nextArena)?ruleText(nextArena.rule):'',nextArena.carryAllowed?'':nextArena.carryReason].filter(Boolean).join(' ')}:null,
+   rule:[nextArena.inventoryReset&&nextArena.round>(arena?.round||0)?'Fresh start: your inventory will be cleared when you enter.':'',nextArena.rule.restriction||getLanguageRule(nextArena)?ruleText(nextArena.rule):'',nextArena.inventoryReset||nextArena.carryAllowed?'':nextArena.carryReason].filter(Boolean).join(' ')}:null,
   directorBusy,directorError,finalClassic:!arena&&level===2};
 }
 function showCounter(){renderRoundResult($('#result'),roundResultInput());}
@@ -65,7 +68,7 @@ async function prepareNext(repair?:string,planned?:{prompt:string,previous:Inven
  try{
   const r=await fetch('/api/direct',{method:'POST',headers:{'content-type':'application/json',accept:'application/x-ndjson'},body:JSON.stringify({arena:currentArena,previous:planned?.previous||spec,plannedInvention:planned,repair,history:roomHistory,inventory:inventoryPayload(),collectedWords,telemetry:{won:sim.state==='won',elapsed:sim.elapsed,uses:sim.uses,maxHeight:sim.maxHeight,position:sim.position,removed:sim.entities.filter(e=>e.removed).map(e=>e.id),events:sim.events.slice(-8)}}),signal:directorController.signal});
   const data=await readBuildResponse(r,()=>{});if(version!==directorVersion)return;
-  nextArena=data.arena;nextFor=plannedBuild?.key===key?(plannedBuild.actualKey||key):key;saveIdeas();$('#director-status').textContent=repair?'Room repaired':'Next room · ready';
+  nextArena=normalizeArenaRules(arenaSchema.parse(data.arena));nextFor=plannedBuild?.key===key?(plannedBuild.actualKey||key):key;saveIdeas();$('#director-status').textContent=repair?'Room repaired':'Next room · ready';
  }catch(e){if((e as Error).name!=='AbortError'&&version===directorVersion){directorError=(e as Error).message;$('#director-status').textContent='Next room needs another try';}}
  finally{if(version===directorVersion){directorBusy=false;directorController=null;if(mode==='result')showCounter();}}
 }
@@ -74,14 +77,14 @@ function attachCode(){
  if(!spec?.code)return;
  new CodeRuntime(sim,view,message=>queueMicrotask(()=>{if(busy)return;craft();showCard();void buildInvention(authoredPrompt(spec)||'Repair this invention so its intended behavior works.',spec,message);}),(...args)=>sound.tone(args[0],args[1],args[2],args[3]),spec.code,'invention',true);
 }
-function snapshotRun(){return {arena,nextArena,roomHistory,nextFor,spec,draft,previousForRule,plannedBuild,level,collectedWords};}
+function snapshotRun(){return {arena,nextArena,roomHistory,nextFor,spec,draft,previousForRule,plannedBuild,level,collectedWords,lastInventoryResetRound,inventory};}
 function updateContinue(){
  const saved=savedSession,available=!!saved&&(!!saved.spec||!!saved.draft||!!saved.nextArena||!saved.arena||saved.arena.round>1);
  $('#continue-run').classList.toggle('hidden',!available);
  if(available)$('#continue-run').textContent=saved.arena?`Continue round ${saved.arena.round} · C`:'Continue saved room · C';
 }
 
-function saveIdeas(){savedSession=snapshotRun();updateContinue();try{localStorage.setItem('badidea-inventions-v1',JSON.stringify({spec,draft,level}));localStorage.setItem('badidea-run-v1',JSON.stringify({arena,nextArena,roomHistory,nextFor,spec,draft,previousForRule,plannedBuild,collectedWords}));}catch{/* Storage may be unavailable; gameplay still works. */}}
+function saveIdeas(){savedSession=snapshotRun();updateContinue();try{localStorage.setItem('badidea-inventions-v1',JSON.stringify({spec,draft,level}));localStorage.setItem('badidea-run-v1',JSON.stringify(snapshotRun()));localStorage.setItem('badidea-inventory-v1',JSON.stringify(inventory));}catch{/* Storage may be unavailable; gameplay still works. */}}
 function say(text:string){const brief=text.length>95?text.slice(0,92).replace(/\s+\S*$/,'')+'…':text;$('#bubble').textContent=brief;noticeUntil=performance.now()+2200;}
 function showMode(next:typeof mode){
  const changed=mode!==next;mode=next;mouseReady=false;edgeTurn=0;
@@ -179,17 +182,27 @@ function cancelBuild(){
 }
 function startFreshRun(){
  if(!ready)return;runVersion++;cancelBuild();invalidateDirector();arena=structuredClone(firstArena);roomHistory=[];roomFailure='';level=0;spec=null;draft=null;previousForRule=null;startingNew=false;
- inventory=[];inventorySelection=0;collectedWords=[];
+ inventory=[];inventorySelection=0;collectedWords=[];lastInventoryResetRound=null;
  try{localStorage.removeItem('badidea-inventory-v1');}catch{/* Storage may be unavailable. */}
  drawInventory();
  $<HTMLTextAreaElement>('#prompt').value='';saveIdeas();reset();hasStarted=true;void play();
 }
 function continueSavedRun(){
  if(!ready||!savedSession)return;const saved=savedSession;runVersion++;cancelBuild();invalidateDirector();
- ({arena,nextArena,roomHistory,nextFor,spec,draft,previousForRule,plannedBuild,level,collectedWords}=saved);roomFailure='';startingNew=false;reset();hasStarted=true;void play();
+ ({arena,nextArena,roomHistory,nextFor,spec,draft,previousForRule,plannedBuild,level,collectedWords,lastInventoryResetRound,inventory}=saved);roomFailure='';startingNew=false;clearInventoryOnEntry();reset();hasStarted=true;void play();
 }
 $('#new-run').onclick=startFreshRun;
-$('#next-level').onclick=()=>{if(arena){if(!nextArena)return;const old=arena;arena=nextArena;if(arena.round!==old.round)collectedWords=[];nextArena=null;$('#director-status').textContent='';roomHistory=recordRoomTransition(roomHistory,old,arena.round);roomFailure='';nextFor='';plannedBuild=null;if(spec&&legality(spec)?.allowed===false){remember(spec);previousForRule=spec;spec=null;draft=null;}saveIdeas();reset();void checkInventoryRules();play();return;}level=Math.min(2,level+1) as LevelId;spec=null;draft=null;saveIdeas();reset();play();};
+function clearInventoryOnEntry(){
+ const current={inventory,spec,draft,previousForRule,lastInventoryResetRound};
+ const next=applyInventoryReset(current,arena);if(next===current)return false;
+ // Aborted or already completed requests from the old inventory must not restore it.
+ runVersion++;cancelBuild();voiceWorkshop?.cancel();
+ ({inventory,spec,draft,previousForRule,lastInventoryResetRound}=next);
+ inventorySelection=0;startingNew=false;$<HTMLTextAreaElement>('#prompt').value='';
+ if(arena)arena.inventoryVerdicts=[];
+ preview?.set(null);drawInventory();saveIdeas();return true;
+}
+$('#next-level').onclick=()=>{if(arena){if(!nextArena)return;const old=arena;arena=normalizeArenaRules(nextArena);if(arena.round!==old.round)collectedWords=[];nextArena=null;$('#director-status').textContent='';roomHistory=recordRoomTransition(roomHistory,old,arena.round);roomFailure='';nextFor='';plannedBuild=null;const cleared=clearInventoryOnEntry();if(spec&&legality(spec)?.allowed===false){remember(spec);previousForRule=spec;spec=null;draft=null;}saveIdeas();reset();if(cleared)sim.note('Fresh start. Your old inventions are gone—make a new idea.');void checkInventoryRules();play();return;}level=Math.min(2,level+1) as LevelId;spec=null;draft=null;saveIdeas();reset();play();};
 $('#starter').onclick=()=>{if(busy)return;draft=sample();startingNew=false;saveIdeas();showCard();$('#speed').textContent='Ready now';};
 function showCard(){
  const item=draft||(!startingNew?spec:null);preview?.set(item);
@@ -344,10 +357,10 @@ window.addEventListener('keyup',e=>keys.delete(inputKey(e)));
 document.addEventListener('focusin',e=>{if((e.target as HTMLElement).matches('textarea,input,[contenteditable=true]'))keys.clear();});
 window.addEventListener('blur',()=>{keys.clear();if(mode==='play'&&!voiceWorkshop?.requesting)showMode('pause');});
 const map:Record<string,string>={left:'a',right:'d',up:'w',down:'s'};for(const b of document.querySelectorAll<HTMLButtonElement>('[data-dir]')){b.onpointerdown=e=>{b.setPointerCapture(e.pointerId);keys.add(map[b.dataset.dir!]);};b.onpointerup=b.onpointercancel=()=>keys.delete(map[b.dataset.dir!]);}$('#touch-invent').onclick=craft;$('#touch-use').onclick=use;
-try{await initPhysics();sim=new Simulation();view=new GameView($('#stage'));view.renderer.domElement.tabIndex=-1;preview=new InventionPreview($('#preview'));try{const saved=JSON.parse(localStorage.getItem('badidea-inventions-v1')||'null');if(saved){level=([0,1,2].includes(saved.level)?saved.level:0) as LevelId;spec=saved.spec?prepareInvention(saved.spec):null;draft=saved.draft?prepareInvention(saved.draft):null;}}catch{/* Ignore invalid saved drafts. */}try{const run=JSON.parse(localStorage.getItem('badidea-run-v1')||'null');if(run){arena=run.arena?normalizeArenaRules(arenaSchema.parse(run.arena)):null;nextArena=run.nextArena?normalizeArenaRules(arenaSchema.parse(run.nextArena)):null;collectedWords=Array.isArray(run.collectedWords)?run.collectedWords.filter((word:unknown):word is string=>typeof word==='string'):[];roomHistory=readRoomHistory(run.roomHistory);nextFor=run.nextFor||'';plannedBuild=run.plannedBuild||null;if(plannedBuild&&!plannedBuild.actualKey)plannedBuild=null;previousForRule=run.previousForRule||null;spec=run.spec?prepareInvention(run.spec):null;draft=run.draft?prepareInvention(run.draft):null;if(arena)level=0;}else{arena={...firstArena};spec=null;draft=null;level=0;}}catch{arena={...firstArena};spec=null;draft=null;level=0;}try{inventory=JSON.parse(localStorage.getItem('badidea-inventory-v1')||'[]').map((entry:{item:unknown,prompt?:unknown})=>{const item=prepareInvention(entry.item);return {key:inventionKey(item),item,prompt:typeof entry.prompt==='string'?entry.prompt:undefined};});}catch{inventory=[];}if(spec)remember(spec);
+try{await initPhysics();sim=new Simulation();view=new GameView($('#stage'));view.renderer.domElement.tabIndex=-1;preview=new InventionPreview($('#preview'));try{const saved=JSON.parse(localStorage.getItem('badidea-inventions-v1')||'null');if(saved){level=([0,1,2].includes(saved.level)?saved.level:0) as LevelId;spec=saved.spec?prepareInvention(saved.spec):null;draft=saved.draft?prepareInvention(saved.draft):null;}}catch{/* Ignore invalid saved drafts. */}try{const run=JSON.parse(localStorage.getItem('badidea-run-v1')||'null');if(run){arena=run.arena?normalizeArenaRules(arenaSchema.parse(run.arena)):null;nextArena=run.nextArena?normalizeArenaRules(arenaSchema.parse(run.nextArena)):null;collectedWords=Array.isArray(run.collectedWords)?run.collectedWords.filter((word:unknown):word is string=>typeof word==='string'):[];lastInventoryResetRound=Number.isInteger(run.lastInventoryResetRound)?run.lastInventoryResetRound:arena?.inventoryReset?arena.round:null;roomHistory=readRoomHistory(run.roomHistory);nextFor=run.nextFor||'';plannedBuild=run.plannedBuild||null;if(plannedBuild&&!plannedBuild.actualKey)plannedBuild=null;previousForRule=run.previousForRule||null;spec=run.spec?prepareInvention(run.spec):null;draft=run.draft?prepareInvention(run.draft):null;if(arena)level=0;}else{arena={...firstArena};spec=null;draft=null;level=0;}}catch{arena={...firstArena};spec=null;draft=null;level=0;}try{const run=JSON.parse(localStorage.getItem('badidea-run-v1')||'null');inventory=(Array.isArray(run?.inventory)?run.inventory:JSON.parse(localStorage.getItem('badidea-inventory-v1')||'[]')).map((entry:{item:unknown,prompt?:unknown})=>{const item=prepareInvention(entry.item);return {key:inventionKey(item),item,prompt:typeof entry.prompt==='string'?entry.prompt:undefined};});}catch{inventory=[];}if(spec)remember(spec);
 if(spec||draft||nextArena||!arena||(arena&&arena.round>1))savedSession=snapshotRun();
 updateContinue();
-arena=structuredClone(firstArena);collectedWords=[];nextArena=null;roomHistory=[];nextFor='';plannedBuild=null;previousForRule=null;spec=null;draft=null;level=0;
+arena=structuredClone(firstArena);collectedWords=[];lastInventoryResetRound=null;nextArena=null;roomHistory=[];nextFor='';plannedBuild=null;previousForRule=null;spec=null;draft=null;level=0;
 sim.dispose();sim=new Simulation(level,arena);if(arena)view.setArena(arena);else view.setLevel(level);ready=true;$('#enter').removeAttribute('disabled');view.yaw=-Math.PI/2;view.pitch=-.06;let last=performance.now(),acc=0,eventCount=0;
  function frame(now:number){const delta=Math.min((now-last)/1000,.08);last=now;if(mode==='play'){if(fallbackLook&&!document.pointerLockElement&&!workbenchOpen&&!inventoryOpen)view.yaw-=Math.max(-1,Math.min(1,edgeTurn))*2.2*delta;sim.aim={x:-Math.sin(view.yaw)*Math.cos(view.pitch),y:Math.sin(view.pitch),z:-Math.cos(view.yaw)*Math.cos(view.pitch)};if(keys.has('q'))view.yaw+=2*delta;if(keys.has('c'))view.yaw-=2*delta;acc+=delta;let forward=0,side=0;if(keys.has('w')||keys.has('arrowup'))forward++;if(keys.has('s')||keys.has('arrowdown'))forward--;if(keys.has('a')||keys.has('arrowleft'))side--;if(keys.has('d')||keys.has('arrowright'))side++;const length=Math.hypot(forward,side)||1,speed=keys.has('shift')?4.5:3.2;sim.manual={x:(-Math.sin(view.yaw)*forward+Math.cos(view.yaw)*side)/length*speed,y:0,z:(-Math.cos(view.yaw)*forward-Math.sin(view.yaw)*side)/length*speed};while(acc>=1/60){sim.tick();wordPickups?.step();if(sim.landingSpeed>1)sound.land();sound.tick(Math.hypot(sim.player.linvel().x,sim.player.linvel().z),sim.grounded,1/60);acc-=1/60;}
   $('#danger').classList.toggle('hidden',sim.alert<=0);$('#danger i').style.width=`${sim.alert*100}%`;

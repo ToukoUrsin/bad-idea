@@ -1,13 +1,18 @@
 import {firstArena,type Arena} from '../src/arena';
 import {emptyLanguageRule} from '../src/prompt-rules';
+import {starters} from '../src/starters';
 const params=new URLSearchParams(location.search),scenario=params.get('scenario')||'bank';
 if(params.has('fresh')||!localStorage.getItem('badidea-run-v1')){
  const language=emptyLanguageRule();
  if(scenario==='no-e'||scenario==='early')language.bannedLetters=['e'];
  if(scenario==='no-the')language.bannedWords=['the'];
  if(scenario==='bank')language.wordBank={starterWords:['a','to','up','over','wall','go','i','can','make','and','wood'],pickups:['ladder','balloon','spring','fly','climb','boots']};
- const arena:Arena={...structuredClone(firstArena),round:scenario==='early'?3:4,title:scenario==='bank'?'Words worth finding':'Choose your words',rule:{title:scenario==='bank'?'Find your words':scenario==='no-the'?'No “the”':'No letter E',restriction:'',language}};
- localStorage.setItem('badidea-run-v1',JSON.stringify({arena,nextArena:{...structuredClone(firstArena),round:arena.round+1},spec:null,draft:null,roomHistory:[],collectedWords:[]}));
+ const arena:Arena={...structuredClone(firstArena),round:scenario==='early'?3:scenario==='bank'||scenario==='reset'?5:scenario==='no-the'||scenario==='reset-survival'?6:4,title:scenario==='bank'?'Words worth finding':'Choose your words',rule:{title:scenario==='bank'?'Find your words':scenario==='no-the'?'No “the”':'No letter E',restriction:'',language}};
+ const item=structuredClone(starters[2]);
+ const resetScenario=scenario==='reset'||scenario==='reset-survival';
+ if(scenario==='reset')arena.code='game.sim.winCondition=()=>true; return {step(){}};';
+ if(scenario==='reset-survival')arena.inventoryReset=true;
+ localStorage.setItem('badidea-run-v1',JSON.stringify({arena,nextArena:{...structuredClone(firstArena),round:arena.round+1,inventoryReset:scenario==='reset'},spec:resetScenario?item:null,draft:null,inventory:resetScenario?[{item,prompt:'a ramp'}]:[],roomHistory:[],collectedWords:[],lastInventoryResetRound:scenario==='reset-survival'?6:null}));
  localStorage.removeItem('badidea-inventory-v1');
  params.delete('fresh');history.replaceState(null,'',`${location.pathname}?${params}`);
 }

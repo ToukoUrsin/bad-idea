@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {spawn} from 'node:child_process';
 import {once} from 'node:events';
-import {firstArena,type Arena} from '../src/arena';
+import {firstArena,tutorialLanguageRule,type Arena} from '../src/arena';
 import {emptyLanguageRule,type LanguageRule} from '../src/prompt-rules';
 
 const noE:LanguageRule={...emptyLanguageRule(),bannedLetters:['e']};
@@ -40,7 +40,7 @@ test('the live HTTP handlers enforce prompt rules before generation and merge in
    process.send({type:'model',request:{instructions:request.instructions,input:{...input,engineSource:undefined},schema:request.text.format.schema}});
    let output;
    if(request.instructions.includes('adversarial LEVEL PROGRAMMER')){
-    output={...firstArena,round:999,challengeMode:'rules',inventoryVerdicts:(input.inventory||[]).map(({key})=>({key,allowed:false,reason:'Wrong generated-copy judgment'})),rule:{title:'No E',restriction:'',language:{bannedLetters:['e'],bannedWords:[],wordBank:null}},carryAllowed:false,carryReason:'Wrong generated-copy judgment'};
+    output={...firstArena,round:999,inventoryReset:input.nextRound!==7,challengeMode:'rules',inventoryVerdicts:(input.inventory||[]).map(({key})=>({key,allowed:false,reason:'Wrong generated-copy judgment'})),rule:{title:'No E',restriction:'',language:{bannedLetters:input.nextRound===4||input.nextRound===7?[]:['e'],bannedWords:[],wordBank:null}},carryAllowed:false,carryReason:'Wrong generated-copy judgment'};
    }else if(request.instructions.startsWith('Judge inventory')){
     output={verdicts:input.inventory.map(({key})=>({key,allowed:key!=='motor',reason:key==='motor'?'No electrical motors.':''}))};
    }else{
@@ -59,9 +59,9 @@ test('the live HTTP handlers enforce prompt rules before generation and merge in
  await t.test('bad descriptions fail before any model request, including invented pickup claims',async()=>{
   let result=await post('/api/invent',{arena:room(4),prompt:'A JET'});
   assert.equal(result.status,400);assert.match(result.data.error,/letter “E”/);
-  result=await post('/api/invent',{arena:room(4,bank),prompt:'a rocket'});
+  result=await post('/api/invent',{arena:room(6,bank),prompt:'a rocket'});
   assert.equal(result.status,400);assert.match(result.data.error,/rocket/);
-  result=await post('/api/invent',{arena:room(4,bank),prompt:'a helicopter',collectedWords:['helicopter']});
+  result=await post('/api/invent',{arena:room(6,bank),prompt:'a helicopter',collectedWords:['helicopter']});
   assert.equal(result.status,400);assert.match(result.data.error,/helicopter/);
   assert.equal(calls.length,0);
  });
@@ -74,7 +74,7 @@ test('the live HTTP handlers enforce prompt rules before generation and merge in
   assert.match(result.data.invention.code,/the generated engine/);
   assert.equal(calls.at(-1).input.request,'A balloon');
   assert.match(calls.at(-1).instructions,/player-written request, which has already been validated/);
-  const pickup=await post('/api/invent',{arena:room(4,bank),prompt:'A ROCKET',collectedWords:['ROCKET']});
+  const pickup=await post('/api/invent',{arena:room(6,bank),prompt:'A ROCKET',collectedWords:['ROCKET']});
   assert.equal(pickup.status,200);
  });
 
@@ -88,17 +88,17 @@ test('the live HTTP handlers enforce prompt rules before generation and merge in
  await t.test('language-only inventory checks use original prompts without any model call',async()=>{
   const before=calls.length;
   const inventory=[{key:'rocket',prompt:'a rocket',name:'The engine',code:'some e filled source'},{key:'ramp',prompt:'a ramp'},{key:'legacy',description:'a ramp'}];
-  const locked=await post('/api/check-rule',{arena:room(4,bank),inventory});
+  const locked=await post('/api/check-rule',{arena:room(6,bank),inventory});
   assert.equal(locked.status,200);
   assert.deepEqual(locked.data.verdicts.map((v:any)=>v.allowed),[false,true,false]);
   assert.ok(locked.data.semanticVerdicts.every((v:any)=>v.allowed));
-  const unlocked=await post('/api/check-rule',{arena:room(4,bank),inventory,collectedWords:['rocket']});
+  const unlocked=await post('/api/check-rule',{arena:room(6,bank),inventory,collectedWords:['rocket']});
   assert.deepEqual(unlocked.data.verdicts.map((v:any)=>v.allowed),[true,true,false]);
   assert.equal(calls.length,before);
  });
 
  await t.test('mixed rules merge prompt failure with semantic judgments and never send language into the semantic judge',async()=>{
-  const arena={...room(5),rule:{...room(5).rule,restriction:'No electrical motors.'}};
+  const arena={...room(6),rule:{...room(6).rule,restriction:'No electrical motors.'}};
   const result=await post('/api/check-rule',{arena,inventory:[{key:'motor',prompt:'A balloon',code:'motor mechanism'},{key:'ramp',prompt:'A JET',name:'Ramp'},{key:'legal',prompt:'A ramp'}]});
   assert.equal(result.status,200);
   assert.deepEqual(result.data.semanticVerdicts.map((v:any)=>v.allowed),[false,true,true]);
@@ -136,6 +136,25 @@ test('the live HTTP handlers enforce prompt rules before generation and merge in
   for(const letter of ['','ee','3'])assert.equal(letterPattern.test(letter),false);
  });
 
+ await t.test('round-five pickup introduction is enforced and later events remain the director choice',async()=>{
+  const fifth=await post('/api/direct',{arena:room(4)});
+  assert.equal(fifth.status,200,JSON.stringify(fifth.data));
+  assert.equal(fifth.data.arena.round,5);
+  assert.deepEqual(fifth.data.arena.rule.language,tutorialLanguageRule(5));
+  assert.equal(fifth.data.arena.inventoryReset,false);
+  const sixth=await post('/api/direct',{arena:room(5)});
+  assert.equal(sixth.status,200,JSON.stringify(sixth.data));
+  assert.equal(sixth.data.arena.inventoryReset,true);
+  assert.deepEqual(sixth.data.arena.rule.language,noE);
+  assert.equal(sixth.data.arena.carryAllowed,true,'clearing is separate from semantic legality');
+  const seventh=await post('/api/direct',{arena:{...room(6),inventoryReset:true},history:[{round:5,title:'Word pickups',change:'Collect words',inventoryReset:false}]});
+  assert.equal(seventh.status,200,JSON.stringify(seventh.data));
+  assert.equal(seventh.data.arena.inventoryReset,false);
+  assert.deepEqual(seventh.data.arena.rule.language,emptyLanguageRule());
+  const memories=calls.at(-1).input.rhythm.recentRooms;
+  assert.deepEqual(memories.map((memory:any)=>memory.inventoryReset),[false,true]);
+ });
+
  await t.test('director output is gated to the requested round and repair preserves the current language rule',async()=>{
   const early=await post('/api/direct',{arena:room(2),inventory:[{key:'old',prompt:'The engine'}]});
   assert.equal(early.status,200,JSON.stringify(early.data));
@@ -143,14 +162,17 @@ test('the live HTTP handlers enforce prompt rules before generation and merge in
   assert.equal(early.data.arena.rule.restriction,'');
   assert.deepEqual(early.data.arena.rule.language,emptyLanguageRule());
   assert.equal(early.data.arena.carryAllowed,true);
+  assert.equal(early.data.arena.inventoryReset,false);
   assert.equal(early.data.arena.inventoryVerdicts[0].allowed,true);
   const fourth=await post('/api/direct',{arena:room(3),inventory:[{key:'old',prompt:'The engine'}]});
   assert.equal(fourth.data.arena.round,4);
   assert.deepEqual(fourth.data.arena.rule.language,noE);
+  assert.equal(fourth.data.arena.inventoryReset,false);
   assert.equal(fourth.data.arena.inventoryVerdicts[0].allowed,true,'director cache stays semantic-only');
   const repaired=await post('/api/direct',{arena:room(6,bank),repair:'Fix room physics',collectedWords:['rocket']});
   assert.equal(repaired.data.arena.round,6);
   assert.deepEqual(repaired.data.arena.rule.language,bank);
+  assert.equal(repaired.data.arena.inventoryReset,false,'repair cannot introduce a fresh start');
   assert.ok(calls.at(-1).schema.properties.rule.required.includes('language'));
  });
 });
